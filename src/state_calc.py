@@ -1,5 +1,5 @@
 class CellCycleStateCalculation:
-    def __init__(self, cyclins: set) -> None:
+    def __init__(self, cyclins: set | list) -> None:
         self.all_cyclins = cyclins
 
     def get_all_possible_starting_states(self) -> list[dict]:
@@ -13,7 +13,12 @@ class CellCycleStateCalculation:
         return all_start_states
 
     def set_green_full_connected_graph(self):
-        self.nodes_and_edges = {cyclin: {1: self.all_cyclins - {cyclin}} for cyclin in self.all_cyclins}
+        if isinstance(self.all_cyclins, set):
+            self.nodes_and_edges = {cyclin: {1: self.all_cyclins - {cyclin}} for cyclin in self.all_cyclins}
+        elif isinstance(self.all_cyclins, list):
+            self.nodes_and_edges = dict()
+            for cyclin in self.all_cyclins:
+                self.nodes_and_edges[cyclin] = {1: [c for c in self.all_cyclins if c != cyclin]}
 
     def set_custom_connected_graph(self, graph: dict[dict]):
         self.nodes_and_edges = graph
@@ -28,9 +33,9 @@ class CellCycleStateCalculation:
             summed_value = 0
 
             for edge_weight, nodes in self.nodes_and_edges.get(cyclin, dict()).items():
-                for node in nodes:
-                    # print(f"{current_state=}, {cyclin=}, {edge_weight=}, {node=}")
-                    summed_value += edge_weight * current_state[node]
+                if edge_weight != 0:
+                    for node in nodes:
+                        summed_value += edge_weight * current_state[node]
 
             if summed_value > 0:
                 next_state[cyclin] = 1
@@ -42,8 +47,6 @@ class CellCycleStateCalculation:
                 if len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set())) == 0 or len(
                     self.nodes_and_edges.get(cyclin, dict()).get(1, set())
                 ) > len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set())):
-                    # if -1 in nodes_and_edges.get(cyclin, dict()).keys():
-                    # if cyclin in self_degrading_cyclins:
                     if current_state[cyclin] == next_state[cyclin]:
                         next_state[cyclin] = 0
 
