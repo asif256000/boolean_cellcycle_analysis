@@ -42,6 +42,7 @@ class CellCycleStateCalculation:
         except IndexError as ie:
             print(f"Graph has no node. {original_graph=}. Error: {ie}")
             two_random_nodes = {}
+
         for node, incoming_edges in original_graph.items():
             if node in two_random_nodes:
                 current_change = self.edge_shuffle(incoming_edges)
@@ -113,7 +114,7 @@ class CellCycleStateCalculation:
             generated_cyclin_states = self.generate_state_table(starting_state=start_state, iteration_count=50)
             state_score = self.calculate_state_score(final_state=generated_cyclin_states[-1])
             state_scores["".join(map(str, start_state.values()))] = state_score
-
+            # self.print_table(generated_cyclin_states)
         return sum(state_scores.values())
 
     def print_table(self, cyclin_states: list[dict]):
