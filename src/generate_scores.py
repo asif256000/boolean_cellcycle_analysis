@@ -1,3 +1,4 @@
+import time
 from copy import deepcopy
 
 from inputs import custom_graph, cyclins, expected_final_state
@@ -13,6 +14,10 @@ if __name__ == "__main__":
         # get_state.set_starting_state(starting_states=[custom_start_state])
         graph_score = get_state.calculate_graph_score()
         graph_scores[modification_id] = graph_score
-        print(f"{modification_id=}, {graph_score=}")
+        if graph_score <= 751:
+            print(f"{modification_id=}, {graph_score=}")
 
-    print(f"{graph_scores}")
+    # print(f"{graph_scores}")
+
+    with open(f"results/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.txt", "w") as score_file:
+        score_file.writelines([f"{k}: {v}\n" for k, v in graph_scores.items()])
