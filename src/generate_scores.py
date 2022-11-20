@@ -12,7 +12,7 @@ if __name__ == "__main__":
         modification_id = get_state.set_random_modified_graph(deepcopy(custom_graph))
         # modification_id = get_state.set_custom_connected_graph(graph=custom_graph)
         # get_state.set_starting_state(starting_states=[custom_start_state])
-        graph_score = get_state.calculate_graph_score()
+        graph_score, final_state_dict = get_state.calculate_graph_score_and_final_states()
         graph_scores[modification_id] = graph_score
         if graph_score <= 751:
             print(f"{modification_id=}, {graph_score=}")

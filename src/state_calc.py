@@ -108,22 +108,45 @@ class CellCycleStateCalculation:
             score += abs(final_state[cyclin] - exp_state)
         return score
 
-    def calculate_graph_score(self) -> int:
+    def iterate_all_states(self) -> tuple[dict, list]:
         state_scores = dict()
+        final_states = list()
         for start_state in self.start_states:
-            generated_cyclin_states = self.generate_state_table(starting_state=start_state, iteration_count=50)
-            state_score = self.calculate_state_score(final_state=generated_cyclin_states[-1])
+            generated_cyclin_states = self.generate_state_table(starting_state=start_state, iteration_count=53)
+            final_state = generated_cyclin_states[-1]
+            final_states.append("".join(map(str, final_state.values())))
+            state_score = self.calculate_state_score(final_state=final_state)
             state_scores["".join(map(str, start_state.values()))] = state_score
-            # self.print_table(generated_cyclin_states)
-        return sum(state_scores.values())
+            # self.print_state_table(generated_cyclin_states)
+        return state_scores, final_states
 
-    def print_table(self, cyclin_states: list[dict]):
-        for d in cyclin_states:
-            headers = cyclin_states[0].keys()
-        temp_head = ["Time"] + list(headers)
-        print(*temp_head, sep="\t|\t")
+    def calculate_graph_score_and_final_states(self) -> tuple[int, dict]:
+        state_scores, final_states = self.iterate_all_states()
+        final_states_count = self.generate_final_state_count_table(final_states)
+        # self.print_final_state_count(final_states_count)
+        return sum(state_scores.values()), final_states_count
+
+    def generate_final_state_count_table(self, final_states: list[dict]) -> dict:
+        counter = dict()
+        for state in set(final_states):
+            counter[state] = final_states.count(state)
+        return counter
+
+    def print_final_state_count(self, final_state_count: dict):
+        headers = ["Count"] + self.all_cyclins
+        print(*headers, sep="\t|\t")
+        for state, count in final_state_count.items():
+            print(count, end="\t|\t")
+            for s in state:
+                print(s, end="\t|\t")
+            print("\n")
+
+    def print_state_table(self, cyclin_states: list[dict]):
+        headers = list(cyclin_states[0].keys())
+        headers.insert(0, "Time")
+        print(*headers, sep="\t|\t")
         for i in range(len(cyclin_states)):
-            print(f"{i+1}\t|\t", end="")
+            print(i + 1, end="\t|\t")
             for col in headers:
                 print(cyclin_states[i][col], end="\t|\t")
             print("\n")
