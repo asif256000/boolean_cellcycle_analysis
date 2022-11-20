@@ -44,3 +44,9 @@
 
 1. Modify scoring parameters according to paths taken
 2. G1 starting, S phase, G2 phase, M phase
+3. How to recognize if states are in correct order
+
+## G1: Start with this state should result in getting all other states in order
+
+0: Swi5, Cdc2014, Clb56, Clb12, Mcm1
+All others can be 0 or 1
