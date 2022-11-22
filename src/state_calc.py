@@ -1,11 +1,24 @@
 import random
+import time
 
 
 class CellCycleStateCalculation:
-    def __init__(self, cyclins: set | list, expected_final_state: dict) -> None:
+    def __init__(self, cyclins: set | list, expected_final_state: dict, g1_states_only: bool = False) -> None:
         self.all_cyclins = cyclins
-        self.start_states = self.__get_all_possible_starting_states()
+
+        if g1_states_only:
+            self.start_states = self.__get_all_g1_states()
+        else:
+            self.start_states = self.__get_all_possible_starting_states()
+
         self.expected_final_state = expected_final_state
+        self.output_file = self.__initiate_output_file()
+
+    def __del__(self):
+        self.output_file.close()
+
+    def __initiate_output_file(self):
+        return open(f"results/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.txt", "a")
 
     def __get_all_possible_starting_states(self) -> list[dict]:
         num_of_cyclins = len(self.all_cyclins)
@@ -16,6 +29,21 @@ class CellCycleStateCalculation:
             all_start_states.append(dict(zip(self.all_cyclins, map(int, list(state)))))
 
         return all_start_states
+
+    def __get_all_g1_states(self):
+        zero_state_cyclins = ["Swi5", "Cdc2014", "Clb5,6", "Clb1,2", "Mcm1,SFF"]
+        all_states = self.__get_all_possible_starting_states()
+
+        filtered_states = list()
+        for state in all_states:
+            check = True
+            for cyclin in zero_state_cyclins:
+                if state[cyclin] != 0:
+                    check = False
+            if check:
+                filtered_states.append(state)
+
+        return filtered_states
 
     def set_green_full_connected_graph(self):
         if isinstance(self.all_cyclins, set):
@@ -112,12 +140,13 @@ class CellCycleStateCalculation:
         state_scores = dict()
         final_states = list()
         for start_state in self.start_states:
-            generated_cyclin_states = self.generate_state_table(starting_state=start_state, iteration_count=53)
+            generated_cyclin_states = self.generate_state_table(starting_state=start_state, iteration_count=13)
             final_state = generated_cyclin_states[-1]
             final_states.append("".join(map(str, final_state.values())))
             state_score = self.calculate_state_score(final_state=final_state)
             state_scores["".join(map(str, start_state.values()))] = state_score
-            # self.print_state_table(generated_cyclin_states)
+            print(f"{start_state=}")
+            self.print_state_table(generated_cyclin_states)
         return state_scores, final_states
 
     def calculate_graph_score_and_final_states(self) -> tuple[int, dict]:
@@ -134,19 +163,20 @@ class CellCycleStateCalculation:
 
     def print_final_state_count(self, final_state_count: dict):
         headers = ["Count"] + self.all_cyclins
-        print(*headers, sep="\t|\t")
+        print(*headers, sep="\t|\t")  # , file=self.output_file)
         for state, count in final_state_count.items():
-            print(count, end="\t|\t")
+            print(count, end="\t|\t")  # , file=self.output_file)
             for s in state:
-                print(s, end="\t|\t")
-            print("\n")
+                print(s, end="\t|\t")  # , file=self.output_file)
+            print("\n")  # , file=self.output_file)
 
     def print_state_table(self, cyclin_states: list[dict]):
         headers = list(cyclin_states[0].keys())
-        headers.insert(0, "Time")
-        print(*headers, sep="\t|\t")
+        # headers.insert(0, "Time")
+        print(*list(["Time"] + headers), sep="\t|\t")  # , file=self.output_file)
         for i in range(len(cyclin_states)):
-            print(i + 1, end="\t|\t")
+            print(i + 1, end="\t|\t")  # , file=self.output_file)
+            # headers.remove("Time")
             for col in headers:
-                print(cyclin_states[i][col], end="\t|\t")
-            print("\n")
+                print(cyclin_states[i][col], end="\t|\t")  # , file=self.output_file)
+            print("\n")  # , file=self.output_file)

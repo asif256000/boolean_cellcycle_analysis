@@ -40,11 +40,13 @@
 2. Create a table with the mappings of how many starting states reach that final state.
 3. Also create a separate .py file which can be used as a test. It can be used to pass custom parameters and to print the table when required.
 
-## Upcoming Tasks discussed
+## Iteration 4: Modify Score Parameter for G1 states
 
 1. Modify scoring parameters according to paths taken
 2. G1 starting, S phase, G2 phase, M phase
 3. How to recognize if states are in correct order
+4. First Cln1,2 activate, then Clb5,6, then Clb1,2, then Cdc2014 -> if not in this order, penalty score +1000. (Not at the same time)
+5. Read the paper based on human cyclins
 
 ## G1: Start with this state should result in getting all other states in order
 

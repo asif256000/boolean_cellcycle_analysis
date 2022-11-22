@@ -84,9 +84,9 @@ modified_graph = {
         0: {"Cdh1", "Clb5,6", "Swi5", "Mcm1,SFF", "SBF", "Sic1", "Cln1,2", "Cdc2014"},
     },
     "SBF": {
-        1: {"Cln3"},
+        1: {"Cln3", "MBF"},
         -1: {"Clb1,2"},
-        0: {"Cdh1", "MBF", "Clb5,6", "Swi5", "Mcm1,SFF", "Sic1", "Cln1,2", "Cdc2014"},
+        0: {"Cdh1", "Clb5,6", "Swi5", "Mcm1,SFF", "Sic1", "Cln1,2", "Cdc2014"},
     },
     "Cln1,2": {
         1: {"SBF"},
@@ -120,8 +120,8 @@ modified_graph = {
     },
     "Cdc2014": {
         1: {"Clb1,2", "Mcm1,SFF"},
-        -1: set(),
-        0: {"Cdh1", "MBF", "Cln3", "Clb5,6", "Swi5", "SBF", "Sic1", "Cln1,2"},
+        -1: {"Cln3"},
+        0: {"Cdh1", "MBF", "Clb5,6", "Swi5", "SBF", "Sic1", "Cln1,2"},
     },
     "Swi5": {
         1: {"Mcm1,SFF", "Cdc2014"},
