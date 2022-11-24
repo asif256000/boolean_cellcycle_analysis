@@ -1,49 +1,27 @@
 import random
-import time
+
+from log_module import logger
 
 
 class CellCycleStateCalculation:
     def __init__(self, cyclins: set | list, expected_final_state: dict, g1_states_only: bool = False) -> None:
         self.all_cyclins = cyclins
 
+        self.start_states = self.__get_all_possible_starting_states()
         if g1_states_only:
             self.start_states = self.__get_all_g1_states()
-        else:
-            self.start_states = self.__get_all_possible_starting_states()
 
         self.expected_final_state = expected_final_state
-        self.output_file = self.__initiate_output_file()
-
-    def __del__(self):
-        self.output_file.close()
-
-    def __initiate_output_file(self):
-        return open(f"results/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.txt", "a")
 
     def __get_all_possible_starting_states(self) -> list[dict]:
         num_of_cyclins = len(self.all_cyclins)
         binary_states_list = [f"{i:>0{num_of_cyclins}b}" for i in range(2**num_of_cyclins)]
 
-        all_start_states = list()
-        for state in binary_states_list:
-            all_start_states.append(dict(zip(self.all_cyclins, map(int, list(state)))))
+        return [dict(zip(self.all_cyclins, map(int, list(state)))) for state in binary_states_list]
 
-        return all_start_states
-
-    def __get_all_g1_states(self):
+    def __get_all_g1_states(self) -> list[dict]:
         zero_state_cyclins = ["Swi5", "Cdc2014", "Clb5,6", "Clb1,2", "Mcm1,SFF"]
-        all_states = self.__get_all_possible_starting_states()
-
-        filtered_states = list()
-        for state in all_states:
-            check = True
-            for cyclin in zero_state_cyclins:
-                if state[cyclin] != 0:
-                    check = False
-            if check:
-                filtered_states.append(state)
-
-        return filtered_states
+        return [state for state in self.start_states if all(state[cyclin] == 0 for cyclin in zero_state_cyclins)]
 
     def set_green_full_connected_graph(self):
         if isinstance(self.all_cyclins, set):
@@ -68,7 +46,7 @@ class CellCycleStateCalculation:
         try:
             two_random_nodes = set(random.choices(tuple(original_graph.keys()), k=2))
         except IndexError as ie:
-            print(f"Graph has no node. {original_graph=}. Error: {ie}")
+            logger.error(f"Graph has no node. {original_graph=}. Error: {ie}")
             two_random_nodes = {}
 
         for node, incoming_edges in original_graph.items():
@@ -136,7 +114,7 @@ class CellCycleStateCalculation:
             score += abs(final_state[cyclin] - exp_state)
         return score
 
-    def iterate_all_states(self) -> tuple[dict, list]:
+    def iterate_all_states(self, view_state_table: bool = False) -> tuple[dict, list]:
         state_scores = dict()
         final_states = list()
         for start_state in self.start_states:
@@ -145,14 +123,14 @@ class CellCycleStateCalculation:
             final_states.append("".join(map(str, final_state.values())))
             state_score = self.calculate_state_score(final_state=final_state)
             state_scores["".join(map(str, start_state.values()))] = state_score
-            print(f"{start_state=}")
-            self.print_state_table(generated_cyclin_states)
+            if view_state_table:
+                logger.info(f"{start_state=}")
+                self.print_state_table(generated_cyclin_states)
         return state_scores, final_states
 
-    def calculate_graph_score_and_final_states(self) -> tuple[int, dict]:
-        state_scores, final_states = self.iterate_all_states()
+    def calculate_graph_score_and_final_states(self, view_state_table: bool = False) -> tuple[int, dict]:
+        state_scores, final_states = self.iterate_all_states(view_state_table)
         final_states_count = self.generate_final_state_count_table(final_states)
-        # self.print_final_state_count(final_states_count)
         return sum(state_scores.values()), final_states_count
 
     def generate_final_state_count_table(self, final_states: list[dict]) -> dict:
@@ -162,21 +140,22 @@ class CellCycleStateCalculation:
         return counter
 
     def print_final_state_count(self, final_state_count: dict):
-        headers = ["Count"] + self.all_cyclins
-        print(*headers, sep="\t|\t")  # , file=self.output_file)
+        table_as_str = "\n"
+        table_as_str += "\t|\t".join(["Count"] + self.all_cyclins)
+        table_as_str += "\n"
         for state, count in final_state_count.items():
-            print(count, end="\t|\t")  # , file=self.output_file)
-            for s in state:
-                print(s, end="\t|\t")  # , file=self.output_file)
-            print("\n")  # , file=self.output_file)
+            table_as_str += f"{count}\t|\t"
+            table_as_str += "\t|\t".join(list(state))
+            table_as_str += "\n"
+        logger.info(table_as_str)
 
     def print_state_table(self, cyclin_states: list[dict]):
+        table_as_str = "\n"
         headers = list(cyclin_states[0].keys())
-        # headers.insert(0, "Time")
-        print(*list(["Time"] + headers), sep="\t|\t")  # , file=self.output_file)
+        table_as_str += "\t|\t".join(["Time"] + headers)
+        table_as_str += "\n"
         for i in range(len(cyclin_states)):
-            print(i + 1, end="\t|\t")  # , file=self.output_file)
-            # headers.remove("Time")
-            for col in headers:
-                print(cyclin_states[i][col], end="\t|\t")  # , file=self.output_file)
-            print("\n")  # , file=self.output_file)
+            table_as_str += f"{i + 1}\t|\t"
+            table_as_str += "\t|\t".join([str(cyclin_states[i][col]) for col in headers])
+            table_as_str += "\n"
+        logger.info(table_as_str)
