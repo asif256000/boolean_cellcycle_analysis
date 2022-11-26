@@ -1,5 +1,5 @@
 cyclins = ["Cln3", "MBF", "SBF", "Cln1,2", "Cdh1", "Swi5", "Cdc2014", "Clb5,6", "Sic1", "Clb1,2", "Mcm1,SFF"]
-
+g1_state_zero_cyclins = ["Swi5", "Cdc2014", "Clb5,6", "Clb1,2", "Mcm1,SFF"]
 expected_final_state = {
     "Cln3": 0,
     "MBF": 0,

@@ -1,5 +1,6 @@
 import random
 
+from inputs import g1_state_zero_cyclins
 from log_module import logger
 
 
@@ -20,8 +21,7 @@ class CellCycleStateCalculation:
         return [dict(zip(self.all_cyclins, map(int, list(state)))) for state in binary_states_list]
 
     def __get_all_g1_states(self) -> list[dict]:
-        zero_state_cyclins = ["Swi5", "Cdc2014", "Clb5,6", "Clb1,2", "Mcm1,SFF"]
-        return [state for state in self.start_states if all(state[cyclin] == 0 for cyclin in zero_state_cyclins)]
+        return [state for state in self.start_states if all(state[cyclin] == 0 for cyclin in g1_state_zero_cyclins)]
 
     def set_green_full_connected_graph(self):
         if isinstance(self.all_cyclins, set):

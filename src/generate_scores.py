@@ -10,11 +10,9 @@ if __name__ == "__main__":
     graph_scores = dict()
     for _ in range(51):
         modification_id = get_state.set_random_modified_graph(deepcopy(custom_graph))
-        graph_score, final_state_dict = get_state.calculate_graph_score_and_final_states()
+        graph_score, final_state_dict = get_state.calculate_graph_score_and_final_states(view_state_table=False)
         graph_scores[modification_id] = graph_score
+        logger.debug(f"{modification_id=}, {graph_score=}")
         if graph_score <= 751:
-            logger.info(f"{modification_id=}, {graph_score=}")
+            logger.info("Graph score less than 751...")
             get_state.print_final_state_count(final_state_dict)
-
-    # with open(f"results/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.txt", "w") as score_file:
-    #     score_file.writelines([f"{k}: {v}\n" for k, v in graph_scores.items()])
