@@ -14,6 +14,14 @@ expected_final_state = {
     "Mcm1,SFF": 0,
 }
 
+# Check only for G1 start states
+expected_cyclin_order = [
+    {"Cln1,2": 1, "Clb5,6": 0, "Clb1,2": 0, "Cdc2014": 0},
+    {"Clb5,6": 1, "Clb1,2": 0, "Cdc2014": 0},
+    {"Clb1,2": 1, "Cdc2014": 0},
+    {"Cdc2014": 1},
+]
+
 
 custom_graph = {
     "Cln3": {

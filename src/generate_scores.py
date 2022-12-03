@@ -13,6 +13,6 @@ if __name__ == "__main__":
         graph_score, final_state_dict = get_state.calculate_graph_score_and_final_states(view_state_table=False)
         graph_scores[modification_id] = graph_score
         logger.debug(f"{modification_id=}, {graph_score=}")
-        if graph_score <= 751:
-            logger.info("Graph score less than 751...")
-            get_state.print_final_state_count(final_state_dict)
+        # if graph_score <= 751:
+        #     logger.info("Graph score less than 751...")
+        #     get_state.print_final_state_count(final_state_dict)

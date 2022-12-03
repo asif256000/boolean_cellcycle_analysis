@@ -48,7 +48,11 @@
 4. First Cln1,2 activate, then Clb5,6, then Clb1,2, then Cdc2014 -> if not in this order, penalty score +1000. (Not at the same time)
 5. Read the paper based on human cyclins
 
+If graph final score is less than 751, run simulation for g1 start states checking for sequence. If seq not maintained, abort that state and log the states and graphs.
+
 ## G1: Start with this state should result in getting all other states in order
 
 0: Swi5, Cdc2014, Clb56, Clb12, Mcm1
 All others can be 0 or 1
+
+**_IS IT G1 STATE EVEN IF ALL STATES ARE 0?_**
