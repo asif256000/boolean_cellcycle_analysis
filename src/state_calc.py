@@ -19,7 +19,9 @@ class CellCycleStateCalculation:
 
     def __get_all_possible_starting_states(self) -> list[dict]:
         num_of_cyclins = len(self.all_cyclins)
-        binary_states_list = [f"{i:>0{num_of_cyclins}b}" for i in range(2**num_of_cyclins)]
+        # I'm currently removing all-zero state from the list because it always leads to all-zero final state
+        # And having it in the list always leads to incorrect path taken. So analyzing other states become difficult
+        binary_states_list = [f"{i:>0{num_of_cyclins}b}" for i in range(1, 2**num_of_cyclins)]
 
         return [dict(zip(self.all_cyclins, map(int, list(state)))) for state in binary_states_list]
 
@@ -131,7 +133,9 @@ class CellCycleStateCalculation:
             score += abs(final_state[cyclin] - exp_state)
         return score
 
-    def iterate_all_states(self, view_state_table: bool = False, g1_states_only: bool = False) -> tuple[dict, list]:
+    def iterate_all_states(
+        self, view_state_table: bool = False, g1_states_only: bool = False
+    ) -> tuple[dict, list[str]]:
         state_scores = dict()
         final_states = list()
         for start_state in self.start_states:
@@ -139,10 +143,12 @@ class CellCycleStateCalculation:
                 starting_state=start_state, iteration_count=13, verify_state_sequence=g1_states_only
             )
             if not generated_cyclin_states:
-                return 1000, dict()
-            final_state = generated_cyclin_states[-1]
-            final_states.append("".join(map(str, final_state.values())))
-            state_score = self.calculate_state_score(final_state=final_state)
+                final_states.append("0" * len(self.all_cyclins))
+                state_score = 1000
+            else:
+                final_state = generated_cyclin_states[-1]
+                final_states.append("".join(map(str, final_state.values())))
+                state_score = self.calculate_state_score(final_state=final_state)
             state_scores["".join(map(str, start_state.values()))] = state_score
             if view_state_table:
                 logger.info(f"{start_state=}")
@@ -153,15 +159,27 @@ class CellCycleStateCalculation:
         state_scores, final_states = self.iterate_all_states(view_state_table)
         final_states_count = self.generate_final_state_count_table(final_states)
         graph_score = sum(state_scores.values())
+
         if graph_score <= self.optimal_graph_score:
             logger.debug(f"Graph Score less ({graph_score=}) for modification_id: {self.graph_modification}")
             self.start_states = self.__get_all_g1_states()
             g1_state_scores, g1_final_states = self.iterate_all_states(view_state_table, g1_states_only=True)
+            g1_final_state_count = dict()
+            for g1_fs in set(g1_final_states):
+                g1_final_state_count[g1_fs] = g1_final_states.count(g1_fs)
+            g1_state_score_map = {uniq_score: "" for uniq_score in set(g1_state_scores.values())}
+            for g1_state, state_score in g1_state_scores.items():
+                g1_state_score_map[state_score] += g1_state
+                g1_state_score_map[state_score] += ", "
+            logger.debug(
+                f"For {self.graph_modification=} with {graph_score=}, {g1_final_state_count=}, {g1_state_score_map=}"
+            )
         else:
             logger.debug(f"{self.graph_modification=}, {graph_score=}")
+
         return graph_score, final_states_count
 
-    def generate_final_state_count_table(self, final_states: list[dict]) -> dict:
+    def generate_final_state_count_table(self, final_states: list[str]) -> dict:
         counter = dict()
         for state in set(final_states):
             counter[state] = final_states.count(state)
@@ -172,7 +190,7 @@ class CellCycleStateCalculation:
         table_as_str += "\t|\t".join(["Count"] + self.all_cyclins)
         table_as_str += "\n"
         for state, count in final_state_count.items():
-            table_as_str += f"{count}\t|\t"
+            table_as_str += f"{count}\t\t|\t\t"
             table_as_str += "\t|\t".join(list(state))
             table_as_str += "\n"
         logger.info(table_as_str)
@@ -183,7 +201,7 @@ class CellCycleStateCalculation:
         table_as_str += "\t|\t".join(["Time"] + headers)
         table_as_str += "\n"
         for i in range(len(cyclin_states)):
-            table_as_str += f"{i + 1}\t|\t"
+            table_as_str += f"{i + 1}\t\t|\t\t"
             table_as_str += "\t|\t".join([str(cyclin_states[i][col]) for col in headers])
             table_as_str += "\n"
         if log_level.lower() == "info":
