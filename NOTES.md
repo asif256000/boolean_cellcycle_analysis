@@ -55,4 +55,11 @@ If graph final score is less than 751, run simulation for g1 start states checki
 0: Swi5, Cdc2014, Clb56, Clb12, Mcm1
 All others can be 0 or 1
 
-**_IS IT G1 STATE EVEN IF ALL STATES ARE 0?_**
+## Iteration 5: Check state orders for original graph and compare it with modified graphs
+
+1. Compute graph score for original graph, also get score for g1 states and punish 100 scores for all state tables that don't follow order.
+2. Record both scores.
+3. Get both scores for modified graphs and check if both scores are less for any of the modified graphs.
+
+- For mamalian cell cycle, if no green arrow coming to it, there should be self-sctivation arrow, i.e. if it stays zero for one cell cycle, flip it to one.
+- CyclinD, p21-27, Cdh1 -> 1, others -> 0

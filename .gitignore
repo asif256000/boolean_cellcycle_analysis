@@ -161,4 +161,5 @@ cython_debug/
 .ionide
 
 # Project-specific gitignores
-results/
+results/*
+!results/control_graph.log

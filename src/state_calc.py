@@ -1,32 +1,36 @@
 import random
 from copy import deepcopy
 
-from inputs import expected_cyclin_order, g1_state_zero_cyclins
+from inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
 from log_module import logger
 
 
 class CellCycleStateCalculation:
     def __init__(self, cyclins: set | list, expected_final_state: dict, g1_states_only: bool = False) -> None:
-        self.last_valid_state = None
         self.all_cyclins = cyclins
 
         self.start_states = self.__get_all_possible_starting_states()
         if g1_states_only:
             self.start_states = self.__get_all_g1_states()
 
-        self.expected_final_state = expected_final_state
+        self.set_expected_final_state(expected_final_state)
         self.optimal_graph_score = 751
+        self.optimal_g1_graph_score = 2111
 
     def __get_all_possible_starting_states(self) -> list[dict]:
         num_of_cyclins = len(self.all_cyclins)
-        # I'm currently removing all-zero state from the list because it always leads to all-zero final state
-        # And having it in the list always leads to incorrect path taken. So analyzing other states become difficult
-        binary_states_list = [f"{i:>0{num_of_cyclins}b}" for i in range(1, 2**num_of_cyclins)]
+        binary_states_list = [f"{i:>0{num_of_cyclins}b}" for i in range(2**num_of_cyclins)]
 
         return [dict(zip(self.all_cyclins, map(int, list(state)))) for state in binary_states_list]
 
     def __get_all_g1_states(self) -> list[dict]:
         return [state for state in self.start_states if all(state[cyclin] == 0 for cyclin in g1_state_zero_cyclins)]
+
+    def set_starting_state(self, starting_states: list):
+        self.start_states = starting_states
+
+    def set_expected_final_state(self, expected_final_state: dict):
+        self.expected_final_state = expected_final_state
 
     def set_green_full_connected_graph(self):
         if isinstance(self.all_cyclins, set):
@@ -35,16 +39,13 @@ class CellCycleStateCalculation:
             self.nodes_and_edges = dict()
             for cyclin in self.all_cyclins:
                 self.nodes_and_edges[cyclin] = {1: [c for c in self.all_cyclins if c != cyclin]}
+        self.graph_modification = "All Connected"
+        return self.graph_modification
 
     def set_custom_connected_graph(self, graph: dict[dict]) -> str:
         self.nodes_and_edges = graph
-        return "NA"
-
-    def set_expected_final_state(self, expected_final_state: dict):
-        self.expected_final_state = expected_final_state
-
-    def set_starting_state(self, starting_states: list):
-        self.start_states = starting_states
+        self.graph_modification = "Default Graph"
+        return self.graph_modification
 
     def set_random_modified_graph(self, original_graph: dict[dict]) -> str:
         change_tracker = list()
@@ -78,6 +79,12 @@ class CellCycleStateCalculation:
 
         return f"from-{from_edge}-{', '.join(random_edges)}-to-{to_edge}"
 
+    def __check_self_degradation_loop(self):
+        ...
+
+    def __check_self_improvement_loop(self):
+        ...
+
     def __calculate_next_step(self, current_state: dict) -> dict:
         next_state = dict()
 
@@ -110,6 +117,8 @@ class CellCycleStateCalculation:
         cyclin_states = list()
         cyclin_states.append(starting_state)
         curr_state = starting_state
+        if starting_state in all_final_states_to_ignore:
+            verify_state_sequence = False
 
         for _ in range(iteration_count):
             if verify_state_sequence and curr_exp_state_order and isinstance(curr_exp_state_order[0], dict):
@@ -121,8 +130,11 @@ class CellCycleStateCalculation:
 
         if verify_state_sequence and len(curr_exp_state_order) != 0:
             logger.debug("INVALID SEQUENCE OF CYCLIN STATES GENERATED!!!")
-            logger.debug(f"Starting state for the iteration was: {starting_state}")
-            logger.debug(f"Graph modification for the iteration was: {self.graph_modification}")
+            logger.debug(f"State: {curr_exp_state_order[0]} was not found in the generated states.")
+            logger.debug(
+                f"Graph modification for the iteration: {self.graph_modification} "
+                f"Starting state for the iteration: {starting_state}"
+            )
             self.print_state_table(cyclin_states, log_level="debug")
             return list()
         return cyclin_states
@@ -140,28 +152,36 @@ class CellCycleStateCalculation:
         final_states = list()
         for start_state in self.start_states:
             generated_cyclin_states = self.generate_state_table(
-                starting_state=start_state, iteration_count=13, verify_state_sequence=g1_states_only
+                starting_state=start_state, iteration_count=50, verify_state_sequence=g1_states_only
             )
             if not generated_cyclin_states:
                 final_states.append("0" * len(self.all_cyclins))
-                state_score = 1000
+                state_score = 100
             else:
                 final_state = generated_cyclin_states[-1]
                 final_states.append("".join(map(str, final_state.values())))
                 state_score = self.calculate_state_score(final_state=final_state)
             state_scores["".join(map(str, start_state.values()))] = state_score
-            if view_state_table:
+            if view_state_table and generated_cyclin_states:
                 logger.info(f"{start_state=}")
                 self.print_state_table(generated_cyclin_states)
         return state_scores, final_states
 
-    def calculate_graph_score_and_final_states(self, view_state_table: bool = False) -> tuple[int, dict]:
+    def calculate_graph_score_and_final_states(
+        self, view_state_table: bool = False, view_final_state_count_table: bool = False
+    ) -> tuple[int, dict]:
         state_scores, final_states = self.iterate_all_states(view_state_table)
+
         final_states_count = self.generate_final_state_count_table(final_states)
+        if view_final_state_count_table:
+            self.print_final_state_count(final_state_count=final_states_count)
+
         graph_score = sum(state_scores.values())
 
+        logger.debug(f"{graph_score=} for {self.graph_modification=}")
         if graph_score <= self.optimal_graph_score:
-            logger.debug(f"Graph Score less ({graph_score=}) for modification_id: {self.graph_modification}")
+            logger.debug(f"GRAPH SCORE LESS THAN OR EQUAL TO {self.optimal_graph_score=}")
+            logger.debug("Taking a deeper dive into the sequence of states for G1 start states...")
             self.start_states = self.__get_all_g1_states()
             g1_state_scores, g1_final_states = self.iterate_all_states(view_state_table, g1_states_only=True)
             g1_final_state_count = dict()
@@ -171,11 +191,12 @@ class CellCycleStateCalculation:
             for g1_state, state_score in g1_state_scores.items():
                 g1_state_score_map[state_score] += g1_state
                 g1_state_score_map[state_score] += ", "
-            logger.debug(
-                f"For {self.graph_modification=} with {graph_score=}, {g1_final_state_count=}, {g1_state_score_map=}"
-            )
-        else:
-            logger.debug(f"{self.graph_modification=}, {graph_score=}")
+            g1_graph_score = sum(g1_state_scores.values())
+            logger.debug(f"For {self.graph_modification=} {g1_graph_score=}")
+            if g1_graph_score <= self.optimal_g1_graph_score:
+                logger.debug(
+                    f"G1 GRAPH SCORE LESS THAN OPTIMAL FOUND!!! {g1_final_state_count=}, {g1_state_score_map=}"
+                )
 
         return graph_score, final_states_count
 
@@ -190,7 +211,7 @@ class CellCycleStateCalculation:
         table_as_str += "\t|\t".join(["Count"] + self.all_cyclins)
         table_as_str += "\n"
         for state, count in final_state_count.items():
-            table_as_str += f"{count}\t\t|\t\t"
+            table_as_str += f"{count}\t|\t"
             table_as_str += "\t|\t".join(list(state))
             table_as_str += "\n"
         logger.info(table_as_str)
@@ -201,7 +222,7 @@ class CellCycleStateCalculation:
         table_as_str += "\t|\t".join(["Time"] + headers)
         table_as_str += "\n"
         for i in range(len(cyclin_states)):
-            table_as_str += f"{i + 1}\t\t|\t\t"
+            table_as_str += f"{i + 1}\t|\t"
             table_as_str += "\t|\t".join([str(cyclin_states[i][col]) for col in headers])
             table_as_str += "\n"
         if log_level.lower() == "info":
