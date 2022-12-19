@@ -115,7 +115,17 @@ all_final_states_to_ignore = [
     },
 ]
 
-custom_graph = {
+# Structure of the graph:
+# Outermost keys are the nodes, and corresponding values are the edges.
+# Inner dictionary contains 3 keys: -1, 0, 1, denoting negative influence (red arrow),
+# no influence (no arrow) and positive influence (green arrow) respectively.
+# The values corresponding to these keys denote the nodes from which
+# the +ve, no, or -ve influences are coming to the key node.
+# Nb: The union of all 3 values corresponding to the -1, 0, 1 keys
+# should contain all the different nodes in the model (`cyclins` list).
+# Important: If a value is empty set, it should be written as set(), not {}.
+# Python identifies {} as an empty dictionary, not as empty set.
+original_graph = {
     "Cln3": {
         1: set(),
         -1: set(),
@@ -172,6 +182,7 @@ custom_graph = {
         0: {"Cdh1", "MBF", "Cln3", "Clb5,6", "SBF", "Sic1", "Cln1,2"},
     },
 }
+
 modified_graph = {
     "Cln3": {
         1: set(),
@@ -184,19 +195,19 @@ modified_graph = {
         0: {"Cdh1", "Clb5,6", "Swi5", "Mcm1,SFF", "SBF", "Sic1", "Cln1,2", "Cdc2014"},
     },
     "SBF": {
-        1: {"Cln3", "MBF"},
+        1: {"Cln3"},
         -1: {"Clb1,2"},
-        0: {"Cdh1", "Clb5,6", "Swi5", "Mcm1,SFF", "Sic1", "Cln1,2", "Cdc2014"},
+        0: {"Cdh1", "MBF", "Clb5,6", "Swi5", "Mcm1,SFF", "Sic1", "Cln1,2", "Cdc2014"},
     },
     "Cln1,2": {
         1: {"SBF"},
-        -1: set(),
-        0: {"Cdh1", "MBF", "Cln3", "Clb5,6", "Clb1,2", "Swi5", "Mcm1,SFF", "Sic1", "Cdc2014"},
+        -1: {"Swi5"},  # Mod 1
+        0: {"Cdh1", "MBF", "Cln3", "Clb5,6", "Clb1,2", "Mcm1,SFF", "Sic1", "Cdc2014"},
     },
     "Clb5,6": {
         1: {"MBF"},
-        -1: {"Sic1", "Cdc2014"},
-        0: {"Cdh1", "Cln3", "Clb1,2", "Swi5", "Mcm1,SFF", "SBF", "Cln1,2"},
+        -1: {"Sic1", "Cdc2014", "Cln3"},  # Mod 2
+        0: {"Cdh1", "Clb1,2", "Swi5", "Mcm1,SFF", "SBF", "Cln1,2"},
     },
     "Sic1": {
         1: {"Swi5", "Cdc2014"},
@@ -220,8 +231,8 @@ modified_graph = {
     },
     "Cdc2014": {
         1: {"Clb1,2", "Mcm1,SFF"},
-        -1: {"Cln3"},
-        0: {"Cdh1", "MBF", "Clb5,6", "Swi5", "SBF", "Sic1", "Cln1,2"},
+        -1: set(),
+        0: {"Cdh1", "MBF", "Cln3", "Clb5,6", "Swi5", "SBF", "Sic1", "Cln1,2"},
     },
     "Swi5": {
         1: {"Mcm1,SFF", "Cdc2014"},
@@ -229,6 +240,7 @@ modified_graph = {
         0: {"Cdh1", "MBF", "Cln3", "Clb5,6", "SBF", "Sic1", "Cln1,2"},
     },
 }
+
 custom_start_state = {
     "Cln3": 1,
     "MBF": 0,

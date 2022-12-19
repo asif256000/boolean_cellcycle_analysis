@@ -1,13 +1,21 @@
 import random
 from copy import deepcopy
 
-from inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
+# from inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
 from log_module import logger
+from mammal_inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
 
 
 class CellCycleStateCalculation:
     def __init__(self, cyclins: set | list, expected_final_state: dict, g1_states_only: bool = False) -> None:
+        """Initialization function for the CellCycleStateCalculation class. This function sets and initializes few required class variables.
+
+        :param set | list cyclins: Cyclins that are selected to play a role in the Cell cycle that are to be calculated.
+        :param dict expected_final_state: The expected state that is taken as the control state to help calculate score for different graphs and starting states.
+        :param bool g1_states_only: If only G1 start states are required to be taken into consideration, set to True. defaults to False.
+        """
         self.all_cyclins = cyclins
+        self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(cyclins)}
 
         self.start_states = self.__get_all_possible_starting_states()
         if g1_states_only:
@@ -17,22 +25,45 @@ class CellCycleStateCalculation:
         self.optimal_graph_score = 751
         self.optimal_g1_graph_score = 2111
 
+        self.self_activation_flag = True
+        self.self_deactivation_falg = True
+
     def __get_all_possible_starting_states(self) -> list[dict]:
+        """Generates all possible starting states from the list of cyclins that are set as the class variable.
+
+        :return list[dict]: For example, [{"C1": 0, "C2": 1,...}, ...] for self.all_cyclins = ["C1", "C2", ...]
+        """
         num_of_cyclins = len(self.all_cyclins)
         binary_states_list = [f"{i:>0{num_of_cyclins}b}" for i in range(2**num_of_cyclins)]
 
         return [dict(zip(self.all_cyclins, map(int, list(state)))) for state in binary_states_list]
 
     def __get_all_g1_states(self) -> list[dict]:
+        """From already calculated self.start_states, filters out the ones for which some given cyclins (taken as input: g1_state_zero_cyclins) are non-zero.
+
+        :return list[dict]: Same as __get_all_possible_starting_states function.
+        """
         return [state for state in self.start_states if all(state[cyclin] == 0 for cyclin in g1_state_zero_cyclins)]
 
     def set_starting_state(self, starting_states: list):
+        """Set the starting state from the input parameter.
+
+        :param list starting_states: List of states. Similar to ones from the function __get_all_possible_starting_states.
+        """
         self.start_states = starting_states
 
     def set_expected_final_state(self, expected_final_state: dict):
+        """Set the expected final state from the input parameter.
+
+        :param dict expected_final_state: Expected final state which is considered a control state for calculating graph score.
+        """
         self.expected_final_state = expected_final_state
 
-    def set_green_full_connected_graph(self):
+    def set_green_full_connected_graph(self) -> str:
+        """Generate a graph where all cyclins are connected to each other with positive (green) edge.
+
+        :return str: Return "All Connected" harcoded string as modification identifier for fully connected graph.
+        """
         if isinstance(self.all_cyclins, set):
             self.nodes_and_edges = {cyclin: {1: self.all_cyclins.difference([cyclin])} for cyclin in self.all_cyclins}
         elif isinstance(self.all_cyclins, list):
@@ -43,13 +74,28 @@ class CellCycleStateCalculation:
         return self.graph_modification
 
     def set_custom_connected_graph(self, graph: dict[dict]) -> str:
+        """Set custom graph taken as input parameter to the class variable for graph to be iterated over.
+
+        :param dict[dict] graph: Graph that is to be set.
+        :return str: Hardcoded string "Custom Graph" as modification identifier.
+        """
         self.nodes_and_edges = graph
-        self.graph_modification = "Default Graph"
+        self.graph_modification = "Custom Graph"
         return self.graph_modification
 
     def set_random_modified_graph(self, original_graph: dict[dict]) -> str:
+        """Randomly modify two edges from the graph taken as input parameter and set the modified graph to the class variable.
+
+        :param dict[dict] original_graph: Graph, represented by a dictionary of dictionary.
+        Every key of the first level is individual cyclins, and the keys in the next level of dict is 0, 1 and -1
+        representing no connection, positive connection and negative connection respectively.
+        Values corresponding to the keys should combine to be all_cyclins class variable.
+        :return str: Identifier of the random changes, comma separated.
+        Pattern: "For node=<target_node>: move <source_node> from <from_random_key> to <to_random_key>, For node=..."
+        """
         change_tracker = list()
         try:
+            # Get two cyclins randomly from the graph
             two_random_nodes = set(random.choices(tuple(original_graph.keys()), k=2))
         except IndexError as ie:
             logger.error(f"Graph has no node. {original_graph=}. Error: {ie}")
@@ -57,8 +103,9 @@ class CellCycleStateCalculation:
 
         for node, incoming_edges in original_graph.items():
             if node in two_random_nodes:
+                # Shuffle edges for the randomly selected nodes
                 current_change = self.edge_shuffle(incoming_edges)
-                change_tracker.append(f"{node} {current_change}")
+                change_tracker.append(f"For {node=}: {current_change}")
 
         self.nodes_and_edges = original_graph
 
@@ -66,6 +113,11 @@ class CellCycleStateCalculation:
         return self.graph_modification
 
     def edge_shuffle(self, edge_map: dict[set]) -> str:
+        """For the given dictionary of edges corresponding to a node, shuffle the edges randomly and return a string that identifies the changes done.
+
+        :param dict[set] edge_map: The dictionary of edges for a node in the graph. The keys are always -1, 0, 1 and the union of all the values should be the self.all_cyclins list.
+        :return str: Identification of the changes being done randomly for the node.
+        """
         weight_list = [-1, 0, 1]
         while True:
             from_edge = random.choice(weight_list)
@@ -77,13 +129,23 @@ class CellCycleStateCalculation:
         edge_map[from_edge].difference_update(random_edges)
         edge_map[to_edge].update(random_edges)
 
-        return f"from-{from_edge}-{', '.join(random_edges)}-to-{to_edge}"
+        return f"move {', '.join(random_edges)} from {from_edge} to {to_edge}"
 
-    def __check_self_degradation_loop(self):
-        ...
+    def __self_degradation_loop(self, cyclin: str, curr_state: dict, next_state: dict):
+        red_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set()))
+        green_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(1, set()))
+        if red_arrow_count == 0 or green_arrow_count > red_arrow_count:
+            # Checking if the current state of the cyclin is the same as the next state of the cyclin
+            if curr_state[cyclin] == next_state[cyclin]:
+                next_state[cyclin] = 0
 
-    def __check_self_improvement_loop(self):
-        ...
+    def __self_improvement_loop(self, cyclin: str, curr_state: dict, next_state: dict):
+        red_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set()))
+        green_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(1, set()))
+        if green_arrow_count == 0 or red_arrow_count > green_arrow_count:
+            # Checking if the current state of the cyclin is the same as the next state of the cyclin
+            if curr_state[cyclin] == next_state[cyclin]:
+                next_state[cyclin] = 1
 
     def __calculate_next_step(self, current_state: dict) -> dict:
         next_state = dict()
@@ -102,11 +164,16 @@ class CellCycleStateCalculation:
                 next_state[cyclin] = 0
             else:
                 next_state[cyclin] = curr_state
-                if len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set())) == 0 or len(
-                    self.nodes_and_edges.get(cyclin, dict()).get(1, set())
-                ) > len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set())):
-                    if current_state[cyclin] == next_state[cyclin]:
-                        next_state[cyclin] = 0
+                if self.self_deactivation_falg:
+                    self.__self_degradation_loop(cyclin, current_state, next_state)
+                if self.self_activation_flag:
+                    self.__self_improvement_loop(cyclin, current_state, next_state)
+                # if len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set())) == 0 or len(
+                #     self.nodes_and_edges.get(cyclin, dict()).get(1, set())
+                # ) > len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set())):
+                #     # Checking if the current state of the cyclin is the same as the next state of the cyclin
+                #     if current_state[cyclin] == next_state[cyclin]:
+                #         next_state[cyclin] = 0
 
         return next_state
 
@@ -207,8 +274,8 @@ class CellCycleStateCalculation:
         return counter
 
     def print_final_state_count(self, final_state_count: dict):
-        table_as_str = "\n"
-        table_as_str += "\t|\t".join(["Count"] + self.all_cyclins)
+        table_as_str = f"\n{self.cyclin_print_map}\n"
+        table_as_str += "\t|\t".join(["Cnt"] + list(self.cyclin_print_map.keys()))
         table_as_str += "\n"
         for state, count in final_state_count.items():
             table_as_str += f"{count}\t|\t"
@@ -217,13 +284,14 @@ class CellCycleStateCalculation:
         logger.info(table_as_str)
 
     def print_state_table(self, cyclin_states: list[dict], log_level: str = "info"):
-        table_as_str = "\n"
-        headers = list(cyclin_states[0].keys())
-        table_as_str += "\t|\t".join(["Time"] + headers)
+        table_as_str = f"\n{self.cyclin_print_map}\n"
+        # headers = list(cyclin_states[0].keys())
+        headers = list(self.cyclin_print_map.keys())
+        table_as_str += "\t|\t".join(["Tm"] + headers)
         table_as_str += "\n"
         for i in range(len(cyclin_states)):
             table_as_str += f"{i + 1}\t|\t"
-            table_as_str += "\t|\t".join([str(cyclin_states[i][col]) for col in headers])
+            table_as_str += "\t|\t".join([str(cyclin_states[i][self.cyclin_print_map[col]]) for col in headers])
             table_as_str += "\n"
         if log_level.lower() == "info":
             logger.info(table_as_str)

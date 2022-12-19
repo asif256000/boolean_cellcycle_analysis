@@ -61,5 +61,7 @@ All others can be 0 or 1
 2. Record both scores.
 3. Get both scores for modified graphs and check if both scores are less for any of the modified graphs.
 
-- For mamalian cell cycle, if no green arrow coming to it, there should be self-sctivation arrow, i.e. if it stays zero for one cell cycle, flip it to one.
-- CyclinD, p21-27, Cdh1 -> 1, others -> 0
+## Iteration 6: Replicate the very low score with the modified graph and create input file for mammal cell cycle
+
+1. For mammalian cell cycle, if no green arrow coming to it, there should be self-activation arrow, i.e. if it stays zero for one cell cycle, flip it to one.
+2. Change to replicate: CyclinD, p21-27, Cdh1 -> 1, others -> 0
