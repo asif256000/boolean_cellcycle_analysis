@@ -65,3 +65,10 @@ All others can be 0 or 1
 
 1. For mammalian cell cycle, if no green arrow coming to it, there should be self-activation arrow, i.e. if it stays zero for one cell cycle, flip it to one.
 2. Change to replicate: CyclinD, p21-27, Cdh1 -> 1, others -> 0
+
+## Iteration 7:
+
+1. Represent the graph as matrix form to use in matlab
+2. Share the mammal log file
+3. Experiment with yeast cell cycle
+4. Document

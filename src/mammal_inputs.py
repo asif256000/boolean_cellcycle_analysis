@@ -5,14 +5,14 @@ expected_final_state = {
     "CyclinE": 0,
     "CyclinA": 0,
     "CyclinB": 0,
-    "E2F1": 1,
+    "E2F1": 0,
     "Skp2": 0,
-    "Cdh1": 0,
+    "Cdh1": 1,
     "Cdc25": 0,
     "RB": 1,
-    "P21-27": 0,
+    "P21-27": 1,
     "Cdc20": 0,
-    "Wee1": 0,
+    "Wee1": 1,
 }
 
 expected_cyclin_order = []
@@ -37,14 +37,14 @@ original_graph = {
         0: {"CyclinE", "CyclinA", "CyclinB", "Skp2", "Cdh1", "Cdc25", "Cdc20", "Wee1"},
     },
     "CyclinE": {
-        1: {"E2F1"},
-        -1: {"Skp2", "RB", "P21-27"},
-        0: {"CyclinD", "CyclinA", "CyclinB", "Cdh1", "Cdc25", "Cdc20", "Wee1"},
+        1: {"E2F1", "Cdc25"},
+        -1: {"Skp2", "RB", "P21-27", "Wee1"},
+        0: {"CyclinD", "CyclinA", "CyclinB", "Cdh1", "Cdc20"},
     },
     "CyclinA": {
-        1: {"E2F1"},
-        -1: {"RB", "P21-27", "Cdc20"},
-        0: {"CyclinD", "CyclinE", "CyclinB", "Skp2", "Cdh1", "Cdc25", "Wee1"},
+        1: {"E2F1", "Cdc25"},
+        -1: {"RB", "P21-27", "Cdc20", "Wee1"},
+        0: {"CyclinD", "CyclinE", "CyclinB", "Skp2", "Cdh1"},
     },
     "CyclinB": {
         1: {"Cdc25"},
@@ -63,13 +63,13 @@ original_graph = {
     },
     "Cdh1": {
         1: set(),
-        -1: {"CyclinA"},
-        0: {"CyclinD", "CyclinE", "CyclinB", "E2F1", "Skp2", "Cdc25", "RB", "P21-27", "Cdc20", "Wee1"},
+        -1: {"CyclinA", "CyclinB"},
+        0: {"CyclinD", "CyclinE", "E2F1", "Skp2", "Cdc25", "RB", "P21-27", "Cdc20", "Wee1"},
     },
     "Cdc25": {
-        1: {"CyclinB"},
+        1: {"CyclinE", "CyclinA", "CyclinB"},
         -1: set(),
-        0: {"CyclinD", "CyclinE", "CyclinA", "E2F1", "Skp2", "Cdh1", "RB", "P21-27", "Cdc20", "Wee1"},
+        0: {"CyclinD", "E2F1", "Skp2", "Cdh1", "RB", "P21-27", "Cdc20", "Wee1"},
     },
     "RB": {
         1: set(),
@@ -78,8 +78,8 @@ original_graph = {
     },
     "P21-27": {
         1: set(),
-        -1: {"CyclinE"},
-        0: {"CyclinD", "CyclinA", "CyclinB", "E2F1", "Skp2", "Cdh1", "Cdc25", "RB", "Cdc20", "Wee1"},
+        -1: {"CyclinE", "Skp2"},
+        0: {"CyclinD", "CyclinA", "CyclinB", "E2F1", "Cdh1", "Cdc25", "RB", "Cdc20", "Wee1"},
     },
     "Cdc20": {
         1: {"CyclinB"},
@@ -161,12 +161,12 @@ custom_start_state = {
     "CyclinE": 0,
     "CyclinA": 0,
     "CyclinB": 0,
-    "E2F1": 1,
+    "E2F1": 0,
     "Skp2": 0,
-    "Cdh1": 0,
+    "Cdh1": 1,
     "Cdc25": 0,
     "RB": 1,
-    "P21-27": 0,
+    "P21-27": 1,
     "Cdc20": 0,
-    "Wee1": 0,
+    "Wee1": 1,
 }

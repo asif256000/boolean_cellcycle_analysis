@@ -3,16 +3,20 @@ from copy import deepcopy
 
 # from inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
 from log_module import logger
-from mammal_inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
+
+# from mammal_inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
 
 
 class CellCycleStateCalculation:
-    def __init__(self, cyclins: set | list, expected_final_state: dict, g1_states_only: bool = False) -> None:
+    def __init__(
+        self, cyclins: set | list, expected_final_state: dict, g1_states_only: bool = False, organism: str = "yeast"
+    ) -> None:
         """Initialization function for the CellCycleStateCalculation class. This function sets and initializes few required class variables.
 
         :param set | list cyclins: Cyclins that are selected to play a role in the Cell cycle that are to be calculated.
         :param dict expected_final_state: The expected state that is taken as the control state to help calculate score for different graphs and starting states.
         :param bool g1_states_only: If only G1 start states are required to be taken into consideration, set to True. defaults to False.
+        :param str organism: This flag helps identify which organism we are calculating states for, so that we use proper parameters. defaults to yeast.
         """
         self.all_cyclins = cyclins
         self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(cyclins)}
@@ -22,9 +26,31 @@ class CellCycleStateCalculation:
             self.start_states = self.__get_all_g1_states()
 
         self.set_expected_final_state(expected_final_state)
+
+        if organism.lower() == "yeast":
+            self.__init_yeast_specific_vars()
+        else:
+            self.__init_mammal_specific_vars()
+
+    def __init_yeast_specific_vars(self):
+        from inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
+
+        self.all_final_states_to_ignore = all_final_states_to_ignore
+        self.expected_cyclin_order = expected_cyclin_order
+        self.g1_state_zero_cyclins = g1_state_zero_cyclins
         self.optimal_graph_score = 751
         self.optimal_g1_graph_score = 2111
+        self.self_activation_flag = False
+        self.self_deactivation_falg = True
 
+    def __init_mammal_specific_vars(self):
+        from mammal_inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
+
+        self.all_final_states_to_ignore = all_final_states_to_ignore
+        self.expected_cyclin_order = expected_cyclin_order
+        self.g1_state_zero_cyclins = g1_state_zero_cyclins
+        self.optimal_graph_score = 4171
+        self.optimal_g1_graph_score = 21111
         self.self_activation_flag = True
         self.self_deactivation_falg = True
 
@@ -43,7 +69,9 @@ class CellCycleStateCalculation:
 
         :return list[dict]: Same as __get_all_possible_starting_states function.
         """
-        return [state for state in self.start_states if all(state[cyclin] == 0 for cyclin in g1_state_zero_cyclins)]
+        return [
+            state for state in self.start_states if all(state[cyclin] == 0 for cyclin in self.g1_state_zero_cyclins)
+        ]
 
     def set_starting_state(self, starting_states: list):
         """Set the starting state from the input parameter.
@@ -180,11 +208,11 @@ class CellCycleStateCalculation:
     def generate_state_table(
         self, starting_state: dict, iteration_count: int, verify_state_sequence: bool = False
     ) -> list[dict]:
-        curr_exp_state_order = deepcopy(expected_cyclin_order)
+        curr_exp_state_order = deepcopy(self.expected_cyclin_order)
         cyclin_states = list()
         cyclin_states.append(starting_state)
         curr_state = starting_state
-        if starting_state in all_final_states_to_ignore:
+        if starting_state in self.all_final_states_to_ignore:
             verify_state_sequence = False
 
         for _ in range(iteration_count):
@@ -230,7 +258,7 @@ class CellCycleStateCalculation:
                 state_score = self.calculate_state_score(final_state=final_state)
             state_scores["".join(map(str, start_state.values()))] = state_score
             if view_state_table and generated_cyclin_states:
-                logger.info(f"{start_state=}")
+                logger.debug(f"{start_state=}")
                 self.print_state_table(generated_cyclin_states)
         return state_scores, final_states
 
@@ -273,7 +301,7 @@ class CellCycleStateCalculation:
             counter[state] = final_states.count(state)
         return counter
 
-    def print_final_state_count(self, final_state_count: dict):
+    def print_final_state_count(self, final_state_count: dict, log_level: str = "Debug"):
         table_as_str = f"\n{self.cyclin_print_map}\n"
         table_as_str += "\t|\t".join(["Cnt"] + list(self.cyclin_print_map.keys()))
         table_as_str += "\n"
@@ -281,9 +309,12 @@ class CellCycleStateCalculation:
             table_as_str += f"{count}\t|\t"
             table_as_str += "\t|\t".join(list(state))
             table_as_str += "\n"
-        logger.info(table_as_str)
+        if log_level.lower() == "info":
+            logger.info(table_as_str)
+        else:
+            logger.debug(table_as_str)
 
-    def print_state_table(self, cyclin_states: list[dict], log_level: str = "info"):
+    def print_state_table(self, cyclin_states: list[dict], log_level: str = "debug"):
         table_as_str = f"\n{self.cyclin_print_map}\n"
         # headers = list(cyclin_states[0].keys())
         headers = list(self.cyclin_print_map.keys())

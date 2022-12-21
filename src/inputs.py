@@ -115,6 +115,20 @@ all_final_states_to_ignore = [
     },
 ]
 
+# original_graph = [
+#     ["Cln3", "MBF", "SBF", "Cln1,2", "Cdh1", "Swi5", "Cdc2014", "Clb5,6", "Sic1", "Clb1,2", "Mcm1,SFF"],
+#     [-1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+#     [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+#     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+#     [0, 0, 0, -1, -1, 0, 0, 0, -1, 0, 0],
+#     [0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0],
+#     [0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0],
+#     [0, 0, 0, 0, 1, 1, -1, -1, 1, -1, 0],
+#     [0, 0, 0, 0, -1, 0, 0, 0, -1, 1, 1],
+#     [0, 0, 0, 0, 0, 0, 0, -1, 0, -1, 0],
+#     [0, 0, 0, 0, -1, -1, 1, 0, -1, 0, 1],
+#     [0, 0, 0, 0, 0, 1, 1, 0, 0, 1, -1],
+# ]
 # Structure of the graph:
 # Outermost keys are the nodes, and corresponding values are the edges.
 # Inner dictionary contains 3 keys: -1, 0, 1, denoting negative influence (red arrow),
@@ -125,6 +139,7 @@ all_final_states_to_ignore = [
 # should contain all the different nodes in the model (`cyclins` list).
 # Important: If a value is empty set, it should be written as set(), not {}.
 # Python identifies {} as an empty dictionary, not as empty set.
+
 original_graph = {
     "Cln3": {
         1: set(),
@@ -201,13 +216,13 @@ modified_graph = {
     },
     "Cln1,2": {
         1: {"SBF"},
-        -1: {"Swi5"},  # Mod 1
-        0: {"Cdh1", "MBF", "Cln3", "Clb5,6", "Clb1,2", "Mcm1,SFF", "Sic1", "Cdc2014"},
+        -1: set(),
+        0: {"Cdh1", "MBF", "Cln3", "Clb5,6", "Clb1,2", "Swi5", "Mcm1,SFF", "Sic1", "Cdc2014"},
     },
     "Clb5,6": {
         1: {"MBF"},
-        -1: {"Sic1", "Cdc2014", "Cln3"},  # Mod 2
-        0: {"Cdh1", "Clb1,2", "Swi5", "Mcm1,SFF", "SBF", "Cln1,2"},
+        -1: {"Sic1", "Cdc2014"},
+        0: {"Cdh1", "Cln3", "Clb1,2", "Swi5", "Mcm1,SFF", "SBF", "Cln1,2"},
     },
     "Sic1": {
         1: {"Swi5", "Cdc2014"},
@@ -230,13 +245,13 @@ modified_graph = {
         0: {"Cdh1", "MBF", "Cln3", "Swi5", "SBF", "Sic1", "Cln1,2", "Cdc2014"},
     },
     "Cdc2014": {
-        1: {"Clb1,2", "Mcm1,SFF"},
+        1: {"Mcm1,SFF"},  # Mod1
         -1: set(),
-        0: {"Cdh1", "MBF", "Cln3", "Clb5,6", "Swi5", "SBF", "Sic1", "Cln1,2"},
+        0: {"Cdh1", "Clb1,2", "MBF", "Cln3", "Clb5,6", "Swi5", "SBF", "Sic1", "Cln1,2"},
     },
     "Swi5": {
-        1: {"Mcm1,SFF", "Cdc2014"},
-        -1: {"Clb1,2"},
+        1: {"Clb1,2", "Mcm1,SFF", "Cdc2014"},
+        -1: set(),  # Mod2
         0: {"Cdh1", "MBF", "Cln3", "Clb5,6", "SBF", "Sic1", "Cln1,2"},
     },
 }
