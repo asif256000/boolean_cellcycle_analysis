@@ -6,9 +6,9 @@ from state_calc import CellCycleStateCalculation
 if __name__ == "__main__":
     organism = "mammal"
     if organism.lower() == "yeast":
-        from inputs import cyclins, expected_final_state, modified_graph, original_graph
+        from inputs import cyclins, expected_final_state, original_graph
     else:
-        from mammal_inputs import cyclins, expected_final_state, modified_graph, original_graph
+        from mammal_inputs import cyclins, expected_final_state, original_graph
 
     test_state = CellCycleStateCalculation(
         cyclins=cyclins, expected_final_state=expected_final_state, organism=organism

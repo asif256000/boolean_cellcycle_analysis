@@ -160,6 +160,14 @@ class CellCycleStateCalculation:
         return f"move {', '.join(random_edges)} from {from_edge} to {to_edge}"
 
     def __self_degradation_loop(self, cyclin: str, curr_state: dict, next_state: dict):
+        """Checks for specific conditions to decide whether self-degrading loop should be applied to the given node (cyclin).
+        If there is no red arrow towards a node, or if number of green arrows are greater than the number of red arrows, and
+        if there is no change in the state of the cyclin from the previous state, then the state is turned to zero (0).
+
+        :param str cyclin: The node (cyclin) for which the decision is to be made.
+        :param dict curr_state: The last calculated state of the cell. This is a complete dictionary with all cyclins and corresponding states present.
+        :param dict next_state: This is the current state of the cell being calculated. Depending on the changes and various other conditions, decision is made.
+        """
         red_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set()))
         green_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(1, set()))
         if red_arrow_count == 0 or green_arrow_count > red_arrow_count:
@@ -168,6 +176,14 @@ class CellCycleStateCalculation:
                 next_state[cyclin] = 0
 
     def __self_improvement_loop(self, cyclin: str, curr_state: dict, next_state: dict):
+        """Checks for specific conditions to decide whether self-improving loop should be applied to the given node (cyclin).
+        If there is no green arrow towards a node, or if number of red arrows are greater than the number of green arrows, and
+        if there is no change in the state of the cyclin from the previous state, then the state is turned to one (1).
+
+        :param str cyclin: The node (cyclin) for which the decision is to be made.
+        :param dict curr_state: The last calculated state of the cell. This is a complete dictionary with all cyclins and corresponding states present.
+        :param dict next_state: This is the current state of the cell being calculated. Depending on the changes and various other conditions, decision is made.
+        """
         red_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set()))
         green_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(1, set()))
         if green_arrow_count == 0 or red_arrow_count > green_arrow_count:

@@ -1,18 +1,18 @@
 cyclins = ["CyclinD", "CyclinE", "CyclinA", "CyclinB", "E2F1", "Skp2", "Cdh1", "Cdc25", "RB", "P21-27", "Cdc20", "Wee1"]
 g1_state_zero_cyclins = []
 expected_final_state = {
-    "CyclinD": 0,
-    "CyclinE": 0,
-    "CyclinA": 0,
-    "CyclinB": 0,
+    "CyclinD": 1,
+    "CyclinE": 1,
+    "CyclinA": 1,
+    "CyclinB": 1,
     "E2F1": 0,
-    "Skp2": 0,
-    "Cdh1": 1,
-    "Cdc25": 0,
-    "RB": 1,
-    "P21-27": 1,
-    "Cdc20": 0,
-    "Wee1": 1,
+    "Skp2": 1,
+    "Cdh1": 0,
+    "Cdc25": 1,
+    "RB": 0,
+    "P21-27": 0,
+    "Cdc20": 1,
+    "Wee1": 0,
 }
 
 expected_cyclin_order = []
