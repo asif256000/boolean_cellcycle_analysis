@@ -37,9 +37,9 @@ original_graph = {
         0: {"CyclinE", "CyclinA", "CyclinB", "Skp2", "Cdh1", "Cdc25", "Cdc20", "Wee1"},
     },
     "CyclinE": {
-        1: {"E2F1", "Cdc25"},
+        1: {"E2F1"},
         -1: {"Skp2", "RB", "P21-27", "Wee1"},
-        0: {"CyclinD", "CyclinA", "CyclinB", "Cdh1", "Cdc20"},
+        0: {"CyclinD", "CyclinA", "CyclinB", "Cdh1", "Cdc25", "Cdc20"},
     },
     "CyclinA": {
         1: {"E2F1", "Cdc25"},
@@ -67,9 +67,9 @@ original_graph = {
         0: {"CyclinD", "CyclinE", "E2F1", "Skp2", "Cdc25", "RB", "P21-27", "Cdc20", "Wee1"},
     },
     "Cdc25": {
-        1: {"CyclinE", "CyclinA", "CyclinB"},
+        1: {"CyclinA", "CyclinB"},
         -1: set(),
-        0: {"CyclinD", "E2F1", "Skp2", "Cdh1", "RB", "P21-27", "Cdc20", "Wee1"},
+        0: {"CyclinD", "CyclinE", "E2F1", "Skp2", "Cdh1", "RB", "P21-27", "Cdc20", "Wee1"},
     },
     "RB": {
         1: set(),

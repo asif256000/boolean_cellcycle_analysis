@@ -41,7 +41,7 @@ class CellCycleStateCalculation:
         self.optimal_graph_score = 751
         self.optimal_g1_graph_score = 2111
         self.self_activation_flag = False
-        self.self_deactivation_falg = True
+        self.self_deactivation_flag = True
 
     def __init_mammal_specific_vars(self):
         from mammal_inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
@@ -52,7 +52,7 @@ class CellCycleStateCalculation:
         self.optimal_graph_score = 4171
         self.optimal_g1_graph_score = 21111
         self.self_activation_flag = True
-        self.self_deactivation_falg = True
+        self.self_deactivation_flag = True
 
     def __get_all_possible_starting_states(self) -> list[dict]:
         """Generates all possible starting states from the list of cyclins that are set as the class variable.
@@ -159,37 +159,31 @@ class CellCycleStateCalculation:
 
         return f"move {', '.join(random_edges)} from {from_edge} to {to_edge}"
 
-    def __self_degradation_loop(self, cyclin: str, curr_state: dict, next_state: dict):
+    def __self_degradation_loop(self, cyclin: str):
         """Checks for specific conditions to decide whether self-degrading loop should be applied to the given node (cyclin).
         If there is no red arrow towards a node, or if number of green arrows are greater than the number of red arrows, and
         if there is no change in the state of the cyclin from the previous state, then the state is turned to zero (0).
 
         :param str cyclin: The node (cyclin) for which the decision is to be made.
-        :param dict curr_state: The last calculated state of the cell. This is a complete dictionary with all cyclins and corresponding states present.
-        :param dict next_state: This is the current state of the cell being calculated. Depending on the changes and various other conditions, decision is made.
         """
         red_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set()))
         green_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(1, set()))
         if red_arrow_count == 0 or green_arrow_count > red_arrow_count:
-            # Checking if the current state of the cyclin is the same as the next state of the cyclin
-            if curr_state[cyclin] == next_state[cyclin]:
-                next_state[cyclin] = 0
+            return True
+        return False
 
-    def __self_improvement_loop(self, cyclin: str, curr_state: dict, next_state: dict):
+    def __self_improvement_loop(self, cyclin: str):
         """Checks for specific conditions to decide whether self-improving loop should be applied to the given node (cyclin).
         If there is no green arrow towards a node, or if number of red arrows are greater than the number of green arrows, and
         if there is no change in the state of the cyclin from the previous state, then the state is turned to one (1).
 
         :param str cyclin: The node (cyclin) for which the decision is to be made.
-        :param dict curr_state: The last calculated state of the cell. This is a complete dictionary with all cyclins and corresponding states present.
-        :param dict next_state: This is the current state of the cell being calculated. Depending on the changes and various other conditions, decision is made.
         """
         red_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set()))
         green_arrow_count = len(self.nodes_and_edges.get(cyclin, dict()).get(1, set()))
         if green_arrow_count == 0 or red_arrow_count > green_arrow_count:
-            # Checking if the current state of the cyclin is the same as the next state of the cyclin
-            if curr_state[cyclin] == next_state[cyclin]:
-                next_state[cyclin] = 1
+            return True
+        return False
 
     def __calculate_next_step(self, current_state: dict) -> dict:
         next_state = dict()
@@ -208,16 +202,18 @@ class CellCycleStateCalculation:
                 next_state[cyclin] = 0
             else:
                 next_state[cyclin] = curr_state
-                if self.self_deactivation_falg:
-                    self.__self_degradation_loop(cyclin, current_state, next_state)
-                if self.self_activation_flag:
-                    self.__self_improvement_loop(cyclin, current_state, next_state)
-                # if len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set())) == 0 or len(
-                #     self.nodes_and_edges.get(cyclin, dict()).get(1, set())
-                # ) > len(self.nodes_and_edges.get(cyclin, dict()).get(-1, set())):
-                #     # Checking if the current state of the cyclin is the same as the next state of the cyclin
-                #     if current_state[cyclin] == next_state[cyclin]:
-                #         next_state[cyclin] = 0
+                if (
+                    self.self_deactivation_flag
+                    and self.__self_degradation_loop(cyclin)
+                    and current_state[cyclin] == next_state[cyclin]
+                ):
+                    next_state[cyclin] = 0
+                if (
+                    self.self_activation_flag
+                    and self.__self_improvement_loop(cyclin)
+                    and current_state[cyclin] == next_state[cyclin]
+                ):
+                    next_state[cyclin] = 1
 
         return next_state
 
