@@ -66,9 +66,16 @@ All others can be 0 or 1
 1. For mammalian cell cycle, if no green arrow coming to it, there should be self-activation arrow, i.e. if it stays zero for one cell cycle, flip it to one.
 2. Change to replicate: CyclinD, p21-27, Cdh1 -> 1, others -> 0
 
-## Iteration 7:
+## Iteration 7: More experiment with Yeast Cell Cycle
 
 1. Represent the graph as matrix form to use in matlab
 2. Share the mammal log file
 3. Experiment with yeast cell cycle
 4. Document
+
+## Iteration 8: All possible perturbations and check scores for all graphs
+
+1. Check all perturbations for Yeast Cell Graph and pass them to the cell cycle model
+2. Check if we can use matrix form for perturbation (numpy)
+3. Send mammal cell cycle in matrix form
+4. Another paper to study
