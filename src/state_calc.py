@@ -18,6 +18,10 @@ class CellCycleStateCalculation:
         :param bool g1_states_only: If only G1 start states are required to be taken into consideration, set to True. defaults to False.
         :param str organism: This flag helps identify which organism we are calculating states for, so that we use proper parameters. defaults to yeast.
         """
+        if organism.lower() == "yeast":
+            self.__init_yeast_specific_vars()
+        else:
+            self.__init_mammal_specific_vars()
         self.all_cyclins = cyclins
         self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(cyclins)}
 
@@ -26,11 +30,6 @@ class CellCycleStateCalculation:
             self.start_states = self.__get_all_g1_states()
 
         self.set_expected_final_state(expected_final_state)
-
-        if organism.lower() == "yeast":
-            self.__init_yeast_specific_vars()
-        else:
-            self.__init_mammal_specific_vars()
 
     def __init_yeast_specific_vars(self):
         from inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
@@ -50,7 +49,7 @@ class CellCycleStateCalculation:
         self.expected_cyclin_order = expected_cyclin_order
         self.g1_state_zero_cyclins = g1_state_zero_cyclins
         self.optimal_graph_score = 4171
-        self.optimal_g1_graph_score = 21111
+        self.optimal_g1_graph_score = 2111
         self.self_activation_flag = True
         self.self_deactivation_flag = True
 

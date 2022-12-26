@@ -11,7 +11,7 @@ if __name__ == "__main__":
         from mammal_inputs import cyclins, expected_final_state, original_graph
 
     test_state = CellCycleStateCalculation(
-        cyclins=cyclins, expected_final_state=expected_final_state, organism=organism
+        cyclins=cyclins, expected_final_state=expected_final_state, g1_states_only=True, organism=organism
     )
     modification_id = test_state.set_custom_connected_graph(graph=original_graph)
     # test_state_calc.set_starting_state(starting_states=[custom_start_state])

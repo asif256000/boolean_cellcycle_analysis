@@ -115,20 +115,6 @@ all_final_states_to_ignore = [
     },
 ]
 
-# original_graph = [
-#     ["Cln3", "MBF", "SBF", "Cln1,2", "Cdh1", "Swi5", "Cdc2014", "Clb5,6", "Sic1", "Clb1,2", "Mcm1,SFF"],
-#     [-1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-#     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, -1, -1, 0, 0, 0, -1, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0],
-#     [0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0],
-#     [0, 0, 0, 0, 1, 1, -1, -1, 1, -1, 0],
-#     [0, 0, 0, 0, -1, 0, 0, 0, -1, 1, 1],
-#     [0, 0, 0, 0, 0, 0, 0, -1, 0, -1, 0],
-#     [0, 0, 0, 0, -1, -1, 1, 0, -1, 0, 1],
-#     [0, 0, 0, 0, 0, 1, 1, 0, 0, 1, -1],
-# ]
 # Structure of the graph:
 # Outermost keys are the nodes, and corresponding values are the edges.
 # Inner dictionary contains 3 keys: -1, 0, 1, denoting negative influence (red arrow),
@@ -139,7 +125,19 @@ all_final_states_to_ignore = [
 # should contain all the different nodes in the model (`cyclins` list).
 # Important: If a value is empty set, it should be written as set(), not {}.
 # Python identifies {} as an empty dictionary, not as empty set.
-
+# M = [
+#     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+#     1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0;
+#     1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0;%
+#     0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0;%
+#     0, 0, 0, -1, 0, 0, 1, -1, 0, -1, 0;%
+#     0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 1;%
+#     0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1;%
+#     0, 1, 0, 0, 0, 0, -1, 0, -1, 0, 0;%
+#     0, 0, 0, -1, 0, 1, 1, -1, 0, -1, 0;%
+#     0, 0, 0, 0, -1, 0, -1, 1, -1, 0, 1;%
+#     0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0;
+# ];
 original_graph = {
     "Cln3": {
         1: set(),

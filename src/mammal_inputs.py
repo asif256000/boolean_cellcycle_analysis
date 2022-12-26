@@ -1,5 +1,5 @@
 cyclins = ["CyclinD", "CyclinE", "CyclinA", "CyclinB", "E2F1", "Skp2", "Cdh1", "Cdc25", "RB", "P21-27", "Cdc20", "Wee1"]
-g1_state_zero_cyclins = []
+g1_state_zero_cyclins = ["CyclinA", "CyclinB", "Cdc25", "Cdc20"]
 expected_final_state = {
     "CyclinD": 1,
     "CyclinE": 1,
@@ -30,6 +30,21 @@ all_final_states_to_ignore = []
 # Important: If a value is empty set, it should be written as set(), not {}.
 # Python identifies {} as an empty dictionary, not as empty set.
 # "CyclinD", "CyclinE", "CyclinA", "CyclinB", "E2F1", "Skp2", "Cdh1", "Cdc25", "RB", "P21-27", "Cdc20", "Wee1"
+# order_of_cyclins: "CyclinD", "CyclinE", "CyclinA", "CyclinB", "E2F1", "Skp2", "Cdh1", "Cdc25", "RB", "P21-27", "Cdc20", "Wee1"
+# M = [
+#     0, 0, 0, 0, 1, 0, 0, 0,-1,-1, 0, 0;
+#     0, 0, 0, 0, 1,-1, 0, 0,-1,-1, 0,-1;
+#     0, 0, 0, 0, 1, 0, 0, 1,-1,-1,-1,-1;
+#     0, 0, 0, 0, 0, 0,-1, 1, 0,-1,-1,-1;
+#     0, 0,-1, 0, 0, 0, 0, 0,-1, 0, 0, 0;
+#     0, 0, 0, 0, 0, 0,-1, 0, 0, 0, 0, 0;
+#     0, 0,-1,-1, 0, 0, 0, 0, 0, 0, 0, 0;
+#     0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
+#    -1,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+#     0,-1, 0, 0, 0,-1, 0, 0, 0, 0, 0, 0;
+#     0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0;
+#     0, 0, 0,-1, 0, 0, 0, 0, 0, 0, 0, 0;
+# ];
 original_graph = {
     "CyclinD": {
         1: {"E2F1"},
