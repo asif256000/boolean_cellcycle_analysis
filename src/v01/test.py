@@ -1,10 +1,10 @@
 # from inputs import cyclins, expected_final_state, original_graph  # modified_graph
 
 # from mammal_inputs import cyclins, expected_final_state, original_graph  # modified_graph
-from state_calc import CellCycleStateCalculation
+from v01.state_calc import CellCycleStateCalculation
 
 if __name__ == "__main__":
-    organism = "mammal"
+    organism = "yeast"
     if organism.lower() == "yeast":
         from inputs import cyclins, expected_final_state, original_graph
     else:
