@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 # from inputs import cyclins, expected_final_state, original_graph
-from state_calc import CellCycleStateCalculation
+from state_calc_old import CellCycleStateCalculation
 
 # from mammal_inputs import cyclins, expected_final_state, original_graph
 

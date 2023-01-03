@@ -79,3 +79,8 @@ All others can be 0 or 1
 2. Check if we can use matrix form for perturbation (numpy)
 3. Send mammal cell cycle in matrix form
 4. Another paper to study
+
+## Iteration 9: Matrix implementation and Pytest
+
+1. Implement the same algorithms and logics using matrix representation for the graph
+2. If possible, implement unit testing module using pytest

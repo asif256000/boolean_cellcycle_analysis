@@ -2,7 +2,7 @@ import random
 from copy import deepcopy
 
 # from inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
-from log_module import logger
+from logs_inner import logger
 
 # from mammal_inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
 
@@ -43,7 +43,7 @@ class CellCycleStateCalculation:
         self.self_deactivation_flag = True
 
     def __init_mammal_specific_vars(self):
-        from mammal_inputs import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
+        from mammal import all_final_states_to_ignore, expected_cyclin_order, g1_state_zero_cyclins
 
         self.all_final_states_to_ignore = all_final_states_to_ignore
         self.expected_cyclin_order = expected_cyclin_order
