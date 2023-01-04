@@ -7,13 +7,20 @@ class LogHandler:
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)
 
+        self.initiate_logger()
+
+    def initiate_logger(self):
+        self.log_folder_name = "other_results"
         log_file_name = self.get_logfile_name()
         formatter = self.log_formatter()
         self.set_console_log_handler(log_formatter=formatter)
         self.set_file_log_handler(log_formatter=formatter, log_file_name=log_file_name)
 
+    def set_log_folder_name(self, folder_name: str):
+        self.log_folder_name = folder_name
+
     def get_logfile_name(self) -> str:
-        return f"results/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.log"
+        return f"{self.log_folder_name}/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.log"
 
     def log_formatter(self) -> logging.Formatter:
         return logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
