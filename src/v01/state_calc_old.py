@@ -194,7 +194,6 @@ class CellCycleStateCalculation:
                 if edge_weight != 0:
                     for node in nodes:
                         summed_value += edge_weight * current_state[node]
-
             if summed_value > 0:
                 next_state[cyclin] = 1
             elif summed_value < 0:
@@ -312,7 +311,7 @@ class CellCycleStateCalculation:
             counter[state] = final_states.count(state)
         return counter
 
-    def print_final_state_count(self, final_state_count: dict, log_level: str = "Debug"):
+    def print_final_state_count(self, final_state_count: dict, log_level: str = "debug"):
         table_as_str = f"\n{self.cyclin_print_map}\n"
         table_as_str += "\t|\t".join(["Cnt"] + list(self.cyclin_print_map.keys()))
         table_as_str += "\n"
