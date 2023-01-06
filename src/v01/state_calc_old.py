@@ -126,7 +126,7 @@ class CellCycleStateCalculation:
             two_random_nodes = set(random.choices(tuple(original_graph.keys()), k=2))
         except IndexError as ie:
             logger.error(f"Graph has no node. {original_graph=}. Error: {ie}")
-            two_random_nodes = {}
+            two_random_nodes = set()
 
         for node, incoming_edges in original_graph.items():
             if node in two_random_nodes:
