@@ -1,5 +1,6 @@
 import logging
 import time
+from pathlib import Path
 
 
 class LogHandler:
@@ -10,13 +11,14 @@ class LogHandler:
         self.initiate_logger()
 
     def initiate_logger(self):
-        self.log_folder_name = "other_results"
+        self.set_log_folder_name("results")
         log_file_name = self.get_logfile_name()
         formatter = self.log_formatter()
         self.set_console_log_handler(log_formatter=formatter)
         self.set_file_log_handler(log_formatter=formatter, log_file_name=log_file_name)
 
     def set_log_folder_name(self, folder_name: str):
+        Path(folder_name).mkdir(exist_ok=True)
         self.log_folder_name = folder_name
 
     def get_logfile_name(self) -> str:
