@@ -12,7 +12,9 @@ def all_perturbation_recursive_generation(graph: list[list], start_pos: int = 0,
         for possible_pertubs in possible_weights - {graph[ix_x1][ix_y1]}:
             cc1_graph = deepcopy(graph)
             cc1_graph[ix_x1][ix_y1] = possible_pertubs
-            yield all_perturbation_recursive_generation(graph=cc1_graph, start_pos=i + 1, iter_count=iter_count + 1)
+            x = all_perturbation_recursive_generation(graph=cc1_graph, start_pos=i + 1, iter_count=iter_count + 1)
+            yield x
+            yield from x
 
 
 def all_perturbation_generator(graph: list[list]):

@@ -103,6 +103,7 @@ class CellCycleStateCalculation:
                     f"Edges {edges} length does not match Cyclins {self.__all_cyclins} length for node number {ix+1}"
                 )
         self.nodes_and_edges = graph
+        logger.debug(f"Set {graph=} for {graph_identifier=}")
         self.graph_modification = graph_identifier
 
     def set_random_modified_graph(self, og_graph: list[list], change_count: int = 2) -> str:
@@ -260,7 +261,7 @@ class CellCycleStateCalculation:
             self.print_final_state_count_table(final_state_count=final_states_count)
 
         if graph_score <= self.__optimal_graph_score:
-            logger.info(f"{graph_score=} LESS THAN OR EQUAL TO {self.__optimal_graph_score=}")
+            logger.info(f"CURRENT OPTIMAL {graph_score=} FOUND FOR {self.graph_modification=}")
             logger.debug("Taking a deeper dive into the sequence of states for G1 start states...")
             try:
                 last_recorded_g1_flag = self.__g1_states_only_flag
@@ -270,7 +271,7 @@ class CellCycleStateCalculation:
                 g1_graph_score = sum(g1_state_scores.values())
                 logger.debug(f"For {self.graph_modification=}, {g1_graph_score=}")
                 if g1_graph_score <= self.__optimal_g1_graph_score:
-                    logger.info(f"{g1_graph_score=} LESS THAN OR EQUAL TO {self.__optimal_g1_graph_score=}")
+                    logger.info(f"CURRENT OPTIMAL {g1_graph_score=} FOUND FOR {self.graph_modification=}")
                     self.print_final_state_count_table(g1_final_state_count)
             finally:
                 self.__g1_states_only_flag = last_recorded_g1_flag
