@@ -1,6 +1,5 @@
 from copy import deepcopy
 from random import choices
-from random import choices
 
 from log_module import logger
 
@@ -63,10 +62,7 @@ class CellCycleStateCalculation:
 
     def __get_all_possible_starting_states(self) -> list[list]:
         """ "Generates all possible starting states from the list of cyclins that are set as the class variable.
-    def __get_all_possible_starting_states(self) -> list[list]:
-        """ "Generates all possible starting states from the list of cyclins that are set as the class variable.
 
-        :return set[list]: A set of starting states, where their order corresponds to the order of self.all_cyclins.
         :return set[list]: A set of starting states, where their order corresponds to the order of self.all_cyclins.
         """
         num_of_cyclins = len(self.__all_cyclins)
@@ -88,19 +84,7 @@ class CellCycleStateCalculation:
             ):
                 g1_start_states.append(state)
         return g1_start_states
-    def __get_all_g1_states(self) -> list:
-        g1_start_states = list()
-        g1_zero_ixs = [self.__get_cyclin_index(zero_cyclin) for zero_cyclin in self.__g1_state_zero_cyclins]
-        g1_one_ixs = [self.__get_cyclin_index(one_cyclin) for one_cyclin in self.__g1_state_one_cyclins]
-        for state in self.__start_states:
-            if all(state[g1_zero_index] == 0 for g1_zero_index in g1_zero_ixs) and all(
-                state[g1_one_index] == 1 for g1_one_index in g1_one_ixs
-            ):
-                g1_start_states.append(state)
-        return g1_start_states
 
-    def __get_cyclin_index(self, cyclin: str):
-        return self.__all_cyclins.index(cyclin)
     def __get_cyclin_index(self, cyclin: str):
         return self.__all_cyclins.index(cyclin)
 
@@ -122,17 +106,7 @@ class CellCycleStateCalculation:
         if len(final_state) != len(self.__all_cyclins):
             raise Exception(f"Final State {final_state} length does not match Cyclin {self.__all_cyclins} Length!")
         self.__expected_final_state = final_state
-    def set_expected_final_state(self, final_state: list):
-        if len(final_state) != len(self.__all_cyclins):
-            raise Exception(f"Final State {final_state} length does not match Cyclin {self.__all_cyclins} Length!")
-        self.__expected_final_state = final_state
 
-    def set_custom_connected_graph(self, graph: list[list], graph_identifier: str = "Custom"):
-        for ix, edges in enumerate(graph):
-            if len(edges) != len(self.__all_cyclins):
-                raise Exception(
-                    f"Edges {edges} length does not match Cyclins {self.__all_cyclins} length for node number {ix+1}"
-                )
     def set_custom_connected_graph(self, graph: list[list], graph_identifier: str = "Custom"):
         for ix, edges in enumerate(graph):
             if len(edges) != len(self.__all_cyclins):
@@ -146,20 +120,13 @@ class CellCycleStateCalculation:
     def set_random_modified_graph(self, og_graph: list[list], change_count: int = 2) -> str:
         graph = deepcopy(og_graph)
         cyclin_len = len(self.__all_cyclins)
-    def set_random_modified_graph(self, og_graph: list[list], change_count: int = 2) -> str:
-        graph = deepcopy(og_graph)
-        cyclin_len = len(self.__all_cyclins)
 
         change_tracker = list()
         for _ in range(change_count):
             change_tracker.append(self.__edge_shuffle(cyclin_len=cyclin_len, graph_to_modify=graph))
-        for _ in range(change_count):
-            change_tracker.append(self.__edge_shuffle(cyclin_len=cyclin_len, graph_to_modify=graph))
 
         self.nodes_and_edges = graph
-        self.nodes_and_edges = graph
 
-        return ", ".join(change_tracker)
         return ", ".join(change_tracker)
 
     def __edge_shuffle(self, cyclin_len: int, graph_to_modify: list) -> str:
@@ -169,25 +136,14 @@ class CellCycleStateCalculation:
         from_val = graph_to_modify[x][y]
         to_val = choices(possible_edge_weights - {from_val})
         graph_to_modify[x][y] = to_val
-    def __edge_shuffle(self, cyclin_len: int, graph_to_modify: list) -> str:
-        possible_edge_weights = {-1, 0, 1}
-        change = choices(range(cyclin_len), k=2)
-        x, y = change[0], change[-1]
-        from_val = graph_to_modify[x][y]
-        to_val = choices(possible_edge_weights - {from_val})
-        graph_to_modify[x][y] = to_val
 
         return f"Pos {x=} and {y=} changed {from_val=} {to_val=}"
-        return f"Pos {x=} and {y=} changed {from_val=} {to_val=}"
 
-    def __self_degradation_loop(self, cyclin_index: int) -> bool:
     def __self_degradation_loop(self, cyclin_index: int) -> bool:
         """Checks for specific conditions to decide whether self-degrading loop should be applied to the given node (cyclin).
         If there is no red arrow towards a node, or if number of green arrows are greater than the number of red arrows, and
         if there is no change in the state of the cyclin from the previous state, then the state is turned to zero (0).
 
-        :param int cyclin_index: The index of the node (cyclin) in the original list of nodes for which the decision is to be made.
-        :return bool: True if self degradation is applicable, False otherwise.
         :param int cyclin_index: The index of the node (cyclin) in the original list of nodes for which the decision is to be made.
         :return bool: True if self degradation is applicable, False otherwise.
         """
@@ -200,13 +156,10 @@ class CellCycleStateCalculation:
         return False
 
     def __self_improvement_loop(self, cyclin_index: int) -> bool:
-    def __self_improvement_loop(self, cyclin_index: int) -> bool:
         """Checks for specific conditions to decide whether self-improving loop should be applied to the given node (cyclin).
         If there is no green arrow towards a node, or if number of red arrows are greater than the number of green arrows, and
         if there is no change in the state of the cyclin from the previous state, then the state is turned to one (1).
 
-        :param int cyclin_index: The index of the node (cyclin) in the original list of nodes for which the decision is to be made.
-        :return bool: True if self improvement is applicable, False otherwise.
         :param int cyclin_index: The index of the node (cyclin) in the original list of nodes for which the decision is to be made.
         :return bool: True if self improvement is applicable, False otherwise.
         """
@@ -231,22 +184,7 @@ class CellCycleStateCalculation:
             and current_state[cyclin_ix] == next_state[cyclin_ix]
         ):
             next_state[cyclin_ix] = 1
-    def __decide_self_loops(self, current_state: list, next_state: list, cyclin_ix: int):
-        if (
-            self.__self_deactivation_flag
-            and self.__self_degradation_loop(cyclin_index=cyclin_ix)
-            and current_state[cyclin_ix] == next_state[cyclin_ix]
-        ):
-            next_state[cyclin_ix] = 0
-        if (
-            self.__self_activation_flag
-            and self.__self_improvement_loop(cyclin_index=cyclin_ix)
-            and current_state[cyclin_ix] == next_state[cyclin_ix]
-        ):
-            next_state[cyclin_ix] = 1
 
-    def __calculate_next_step(self, current_state: list) -> list[int]:
-        next_state = [None] * len(self.__all_cyclins)
     def __calculate_next_step(self, current_state: list) -> list[int]:
         next_state = [None] * len(self.__all_cyclins)
 
@@ -254,15 +192,7 @@ class CellCycleStateCalculation:
             state_value = 0
             for current_node_index, edge_val in enumerate(self.nodes_and_edges[ix]):
                 state_value += edge_val * current_state[current_node_index]
-        for ix, cyclin_state in enumerate(current_state):
-            state_value = 0
-            for current_node_index, edge_val in enumerate(self.nodes_and_edges[ix]):
-                state_value += edge_val * current_state[current_node_index]
 
-            if state_value > 0:
-                next_state[ix] = 1
-            elif state_value < 0:
-                next_state[ix] = 0
             if state_value > 0:
                 next_state[ix] = 1
             elif state_value < 0:
@@ -276,16 +206,7 @@ class CellCycleStateCalculation:
 
     def __generate_state_table(self, starting_state: list, iteration_count: int) -> list[list]:
         cyclin_states = [starting_state]
-    def __generate_state_table(self, starting_state: list, iteration_count: int) -> list[list]:
-        cyclin_states = [starting_state]
         curr_state = starting_state
-        verify_seq = False
-
-        if self.__g1_states_only_flag:
-            verify_seq = True
-        expected_state_order = deepcopy(self.__expected_cyclin_order)
-        if starting_state in self.__all_final_states_to_ignore:
-            verify_seq = False
         verify_seq = False
 
         if self.__g1_states_only_flag:
@@ -310,7 +231,6 @@ class CellCycleStateCalculation:
         return cyclin_states
 
     def __calculate_state_scores(self, final_state: list) -> int:
-    def __calculate_state_scores(self, final_state: list) -> int:
         score = 0
         for ix, exp_state in enumerate(self.__expected_final_state):
             score += abs(final_state[ix] - exp_state)
@@ -319,19 +239,8 @@ class CellCycleStateCalculation:
         return score
 
     def __iterate_all_start_states(self, view_state_table: bool = False) -> tuple[dict[str, int], list[str]]:
-    def __iterate_all_start_states(self, view_state_table: bool = False) -> tuple[dict[str, int], list[str]]:
         state_scores = dict()
         final_states = list()
-
-        if self.__g1_states_only_flag:
-            all_start_states = self.__g1_start_states
-        else:
-            all_start_states = self.__start_states
-
-        for start_state in all_start_states:
-            all_cyclin_states = self.__generate_state_table(starting_state=start_state, iteration_count=51)
-            if not all_cyclin_states:
-                final_states.append("9" * len(self.__all_cyclins))
 
         if self.__g1_states_only_flag:
             all_start_states = self.__g1_start_states
