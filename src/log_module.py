@@ -9,6 +9,7 @@ class LogHandler:
         self.logger.setLevel(logging.DEBUG)
 
         self.initiate_logger()
+        self.set_ignore_details_flag(flag=False)
 
     def initiate_logger(self):
         self.set_log_folder_name("results")
@@ -21,7 +22,11 @@ class LogHandler:
         Path(folder_name).mkdir(exist_ok=True)
         self.log_folder_name = folder_name
 
+    def set_ignore_details_flag(self, flag: bool):
+        self.ignore_details = flag
+
     def get_logfile_name(self) -> str:
+        return f"{self.log_folder_name}/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.log"
         return f"{self.log_folder_name}/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.log"
 
     def log_formatter(self) -> logging.Formatter:
@@ -42,8 +47,9 @@ class LogHandler:
     def info(self, msg: str):
         self.logger.info(msg)
 
-    def debug(self, msg: str):
-        self.logger.debug(msg)
+    def debug(self, msg: str, detail: bool = False):
+        if not (self.ignore_details and detail):
+            self.logger.debug(msg)
 
     def warning(self, msg: str):
         self.logger.warning(msg)

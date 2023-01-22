@@ -84,3 +84,23 @@ All others can be 0 or 1
 
 1. Implement the same algorithms and logics using matrix representation for the graph
 2. If possible, implement unit testing module using pytest
+
+## Iteration 10: Histogram and Log Modification
+
+1. Y-axis - Frequency of score differences (not absolute), X-axis differences (-ve values included)
+2. Also for total score (graph_score + g1_graph_score)
+3. Make it such that not everything is logged all the time. Put flags. Just scores are required for all perturbations.
+
+## Iteration 11: Logs & Multiprocessing
+
+1. Dump scores and Perturbations in an excel
+2. Logs for all perturbations
+3. Work on Multiprocessing
+4. Also increase bincount for the histogram
+
+## Iteration 12: Mammal Cell Cycle & Finalize Yeast Perturbation Frequency Graph
+
+1. Freq Distn for Yeast Perurbations
+2. Asynchronous update of cell states for mammal
+3. Multiprocessing for mammal
+4. Cycle detection and counting for cell states

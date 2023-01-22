@@ -166,4 +166,9 @@ cython_debug/
 # Project-specific gitignores
 results/*
 !results/control_graph.log
+<<<<<<< HEAD
 !results/mammal_first_test.log
+figures/*
+=======
+!results/mammal_first_test.log
+>>>>>>> parent of 9f62994 (🔊 New Logs update)

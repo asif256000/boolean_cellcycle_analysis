@@ -1,10 +1,22 @@
 import time
+from multiprocessing import Pool, Process
 from pathlib import Path
 
 import pandas as pd
 
 from state_calc import CellCycleStateCalculation
 from utils import all_perturbation_generator, generate_histogram
+
+
+def multiprocess_fn_wrapper(args: list):
+    return args[0].mp_generate_graph_score_and_final_states(reqd_graph=args[1], graph_mod_id=args[2])
+
+
+def mp_pool_handler():
+    p = Process(target=multiprocess_fn_wrapper, args=[(), ()])
+    p.start()
+    return p.join()
+
 
 if __name__ == "__main__":
     organism = "yeast"
@@ -29,6 +41,8 @@ if __name__ == "__main__":
         graph_score, g1_graph_score, final_state_counts = test_state.generate_graph_score_and_final_states(
             view_state_table=False, view_final_state_count_table=False
         )
+        # graph_score, g1_graph_score, final_state_counts = multiprocess_fn_wrapper(args)
+        # some_output = mp_pool_handler()
         graph_param = (graph_score - og_g_score) / og_g_score
         graph_score_list.append(graph_param)
         g1_graph_param = "NA"
