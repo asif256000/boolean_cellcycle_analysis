@@ -15,7 +15,6 @@ class CellCycleStateCalculation:
             self.__init_mammal_specific_vars()
 
         self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(self.__all_cyclins)}
-        self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(self.__all_cyclins)}
 
         logger.set_ignore_details_flag(flag=not detailed_logs)
         self.__start_states = self.__get_all_possible_starting_states()
@@ -149,8 +148,6 @@ class CellCycleStateCalculation:
         """
         red_arrow_count = self.nodes_and_edges[cyclin_index].count(-1)
         green_arrow_count = self.nodes_and_edges[cyclin_index].count(1)
-        red_arrow_count = self.nodes_and_edges[cyclin_index].count(-1)
-        green_arrow_count = self.nodes_and_edges[cyclin_index].count(1)
         if red_arrow_count == 0 or green_arrow_count > red_arrow_count:
             return True
         return False
@@ -163,8 +160,6 @@ class CellCycleStateCalculation:
         :param int cyclin_index: The index of the node (cyclin) in the original list of nodes for which the decision is to be made.
         :return bool: True if self improvement is applicable, False otherwise.
         """
-        green_arrow_count = self.nodes_and_edges[cyclin_index].count(1)
-        red_arrow_count = self.nodes_and_edges[cyclin_index].count(-1)
         green_arrow_count = self.nodes_and_edges[cyclin_index].count(1)
         red_arrow_count = self.nodes_and_edges[cyclin_index].count(-1)
         if green_arrow_count == 0 or red_arrow_count > green_arrow_count:
@@ -200,8 +195,6 @@ class CellCycleStateCalculation:
             else:
                 next_state[ix] = cyclin_state
                 self.__decide_self_loops(current_state, next_state, ix)
-                next_state[ix] = cyclin_state
-                self.__decide_self_loops(current_state, next_state, ix)
         return next_state
 
     def __generate_state_table(self, starting_state: list, iteration_count: int) -> list[list]:
@@ -232,8 +225,6 @@ class CellCycleStateCalculation:
 
     def __calculate_state_scores(self, final_state: list) -> int:
         score = 0
-        for ix, exp_state in enumerate(self.__expected_final_state):
-            score += abs(final_state[ix] - exp_state)
         for ix, exp_state in enumerate(self.__expected_final_state):
             score += abs(final_state[ix] - exp_state)
         return score
@@ -429,11 +420,11 @@ class CellCycleStateCalculation:
 
     def mp_generate_graph_score_and_final_states(
         self,
-        reqd_graph: list[list],
-        graph_mod_id: str,
+        graph_info: tuple[list[list], str],
         view_state_table: bool = False,
         view_final_state_count_table: bool = False,
     ) -> tuple[int, int, dict[str, int]]:
+        reqd_graph, graph_mod_id = graph_info[0], graph_info[1]
         state_scores, final_states = self.__mp_iterate_all_start_states(reqd_graph, view_state_table=view_state_table)
         final_states_count = self.__generate_final_state_counts(final_states)
         graph_score = sum(state_scores.values())
@@ -460,4 +451,4 @@ class CellCycleStateCalculation:
             finally:
                 self.__g1_states_only_flag = last_recorded_g1_flag
 
-        return graph_score, g1_graph_score, final_states_count
+        return graph_score, g1_graph_score, final_states_count, graph_mod_id

@@ -101,6 +101,11 @@ All others can be 0 or 1
 ## Iteration 12: Mammal Cell Cycle & Finalize Yeast Perturbation Frequency Graph
 
 1. Freq Distn for Yeast Perurbations
-2. Asynchronous update of cell states for mammal
-3. Multiprocessing for mammal
-4. Cycle detection and counting for cell states
+2. Multiprocessing for mammal
+
+## Iteration 13: Mammal Cell Cycle (Async Update, Cycle Detection, Multiprocessing)
+
+1. Asynchronous update of cell states for mammal
+2. Cycle detection and counting for cell states
+3. Look up ARC Registration
+4. Read Mammal Paper for Async Update scheme rules

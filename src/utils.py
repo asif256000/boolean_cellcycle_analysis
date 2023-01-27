@@ -80,6 +80,18 @@ def generate_histogram(freq_list: list, img_filename: str, plot_title: str):
     plt.close()
 
 
+def generate_categorical_hist(freq_dict: dict[str, int], img_filename: str, plot_title: str):
+    sns.set_style(style="darkgrid")
+    wid = len(freq_dict) // 5
+    plt.figure(figsize=(wid, 10))
+    sns.barplot(x=list(freq_dict.keys()), y=list(freq_dict.values()))
+    plt.title(plot_title)
+    plt.ylabel("Frequency")
+    plt.xticks(rotation=90)
+    plt.savefig(img_filename, bbox_inches="tight")
+    plt.close()
+
+
 def combine_subplots(filename_list: list, plot_title: str = "Frequency Charts"):
     fig, axis = plt.subplots(len(filename_list))
     fig.suptitle(plot_title, fontsize=20)
