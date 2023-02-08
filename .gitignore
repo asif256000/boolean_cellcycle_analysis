@@ -167,9 +167,5 @@ cython_debug/
 results/*
 !results/control_graph.log
 !results/mammal_*.log
-<<<<<<< HEAD
-!results/mammal_first_test.log
 figures/*
-=======
-!results/mammal_first_test.log
->>>>>>> parent of 9f62994 (🔊 New Logs update)
+!figures/all_perturbations
