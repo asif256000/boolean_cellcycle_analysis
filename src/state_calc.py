@@ -6,9 +6,16 @@ from log_module import logger
 
 class CellCycleStateCalculation:
     def __init__(
-        self, cyclins: list, organism: str = "yeast", g1_states_only: bool = False, detailed_logs: bool = True
+        self,
+        cyclins: list,
+        organism: str = "yeast",
+        g1_states_only: bool = False,
+        detailed_logs: bool = False,
+        async_update: bool = True,
+        random_order_cyclin: bool = True,
     ) -> None:
         self.__all_cyclins = cyclins
+        self.__cyclins_copy = [c for c in cyclins]
         if organism.lower() == "yeast":
             self.__init_yeast_specific_vars()
         else:
@@ -16,10 +23,13 @@ class CellCycleStateCalculation:
 
         self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(self.__all_cyclins)}
 
+        self.detailed_logs = detailed_logs
         logger.set_ignore_details_flag(flag=not detailed_logs)
         self.__start_states = self.__get_all_possible_starting_states()
         self.__g1_states_only_flag = g1_states_only
         self.__g1_start_states = self.__get_all_g1_states()
+        self.__async_update = async_update
+        self.__random_order_cyclin = random_order_cyclin
 
     def __init_yeast_specific_vars(self):
         from yeast_inputs import (
@@ -58,6 +68,12 @@ class CellCycleStateCalculation:
         self.__optimal_g1_graph_score = 2111
         self.__self_activation_flag = True
         self.__self_deactivation_flag = True
+
+    def __repr__(self) -> str:
+        return (
+            f"Class CellCycleStateCalculation. Optimal Graph Score: {self.__optimal_graph_score}, "
+            f"Activation Loop Status: {self.__self_activation_flag}, Detailed Log Flag: {self.detailed_logs}"
+        )
 
     def __get_all_possible_starting_states(self) -> list[list]:
         """ "Generates all possible starting states from the list of cyclins that are set as the class variable.
@@ -180,8 +196,14 @@ class CellCycleStateCalculation:
         ):
             next_state[cyclin_ix] = 1
 
+    def __modify_graph_with_random_list(self):
+        ...
+
     def __calculate_next_step(self, current_state: list) -> list[int]:
-        next_state = [None] * len(self.__all_cyclins)
+        if self.__async_update:
+            next_state = current_state
+        else:
+            next_state = [None] * len(self.__all_cyclins)
 
         for ix, cyclin_state in enumerate(current_state):
             state_value = 0
@@ -241,8 +263,13 @@ class CellCycleStateCalculation:
         for start_state in all_start_states:
             all_cyclin_states = self.__generate_state_table(starting_state=start_state, iteration_count=51)
             if not all_cyclin_states:
-                final_states.append("9" * len(self.__all_cyclins))
+                final_states.append("X" * len(self.__all_cyclins))
                 state_score = 100
+            elif all_cyclin_states[-1] != all_cyclin_states[-2]:
+                final_states.append("C" * len(self.__all_cyclins))
+                state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
+                    all_cyclin_states[-2]
+                )
             else:
                 curr_final_state = all_cyclin_states[-1]
                 final_states.append("".join(map(str, curr_final_state)))
@@ -408,6 +435,11 @@ class CellCycleStateCalculation:
             if not all_cyclin_states:
                 final_states.append("9" * len(self.__all_cyclins))
                 state_score = 100
+            elif all_cyclin_states[-1] != all_cyclin_states[-2]:
+                final_states.append("C" * len(self.__all_cyclins))
+                state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
+                    all_cyclin_states[-2]
+                )
             else:
                 curr_final_state = all_cyclin_states[-1]
                 final_states.append("".join(map(str, curr_final_state)))
@@ -424,8 +456,11 @@ class CellCycleStateCalculation:
         view_state_table: bool = False,
         view_final_state_count_table: bool = False,
     ) -> tuple[int, int, dict[str, int]]:
+        logger.set_ignore_details_flag(flag=not self.detailed_logs)
         reqd_graph, graph_mod_id = graph_info[0], graph_info[1]
-        state_scores, final_states = self.__mp_iterate_all_start_states(reqd_graph, view_state_table=view_state_table)
+        state_scores, final_states = self.__mp_iterate_all_start_states(
+            reqd_graph, graph_mod_id, view_state_table=view_state_table
+        )
         final_states_count = self.__generate_final_state_counts(final_states)
         graph_score = sum(state_scores.values())
         logger.debug(f"{graph_score=} for graph modification={graph_mod_id}", detail=True)
@@ -440,7 +475,7 @@ class CellCycleStateCalculation:
                 last_recorded_g1_flag = self.__g1_states_only_flag
                 self.__g1_states_only_flag = True
                 g1_state_scores, g1_final_states = self.__mp_iterate_all_start_states(
-                    reqd_graph, view_state_table=view_state_table
+                    reqd_graph, graph_mod_id, view_state_table=view_state_table
                 )
                 g1_final_state_count = self.__generate_final_state_counts(g1_final_states)
                 g1_graph_score = sum(g1_state_scores.values())
@@ -452,3 +487,10 @@ class CellCycleStateCalculation:
                 self.__g1_states_only_flag = last_recorded_g1_flag
 
         return graph_score, g1_graph_score, final_states_count, graph_mod_id
+
+
+class StateCalcMultiProcess(CellCycleStateCalculation):
+    def __init__(
+        self, cyclins: list, organism: str = "yeast", g1_states_only: bool = False, detailed_logs: bool = False
+    ) -> None:
+        super().__init__(cyclins, organism, g1_states_only, detailed_logs)

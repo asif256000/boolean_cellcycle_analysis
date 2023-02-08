@@ -7,7 +7,7 @@ from state_calc import CellCycleStateCalculation
 from utils import all_perturbation_generator, generate_categorical_hist, generate_histogram
 
 if __name__ == "__main__":
-    organism = "yeast"
+    organism = "mammal"  # Options: ["yeast", "mammal"]
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, original_graph
     else:
@@ -24,11 +24,19 @@ if __name__ == "__main__":
     og_g_score, og_g1_score = test_state.get_optimal_scores()
     graph_score_list, g1_graph_score_list, sum_graph_score_list, perturb_freq = list(), list(), list(), dict()
 
+    t1 = time.time()
+    i = 0
     for modified_matrix, matrix_modifier in all_perturbation_generator(nodes=cyclins, graph=original_graph):
         test_state.set_custom_connected_graph(graph=modified_matrix, graph_identifier=matrix_modifier)
         graph_score, g1_graph_score, final_state_counts = test_state.generate_graph_score_and_final_states(
             view_state_table=False, view_final_state_count_table=False
         )
+        # (
+        #     graph_score,
+        #     g1_graph_score,
+        #     final_state_counts,
+        #     matrix_modifier,
+        # ) = test_state.mp_generate_graph_score_and_final_states(graph_info=(modified_matrix, matrix_modifier))
         graph_param = (graph_score - og_g_score) / og_g_score
         graph_score_list.append(graph_param)
         g1_graph_param = "NA"
@@ -46,6 +54,11 @@ if __name__ == "__main__":
             g1_graph_score_list.append(g1_graph_param)
             sum_graph_score_list.append(sum_graph_score_param)
         score_df_list.append([matrix_modifier, graph_score, g1_graph_score, graph_score + g1_graph_score])
+        if i > 300:
+            break
+        i += 1
+
+    print(f"Time taken: {time.time() - t1} seconds...")
 
     score_df = pd.DataFrame(score_df_list, columns=["Graph Mod Id", "Graph Score", "G1 Graph Score", "Sum Graph Score"])
     score_df.to_csv("Scores.csv")

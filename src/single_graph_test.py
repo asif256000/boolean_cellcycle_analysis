@@ -1,17 +1,15 @@
 from state_calc import CellCycleStateCalculation
 
 if __name__ == "__main__":
-    organism = "yeast"
+    organism = "mammal"
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, modified_graph, original_graph
     else:
         from mammal_inputs import cyclins, modified_graph, original_graph
 
-    get_state = CellCycleStateCalculation(cyclins=cyclins, organism=organism, detailed_logs=True)
+    get_state = CellCycleStateCalculation(cyclins=cyclins, organism=organism, detailed_logs=True, async_update=False)
 
-    modification_id = get_state.set_custom_connected_graph(
-        graph=modified_graph, graph_identifier="First: Cln1,2-to-MBF -> 0to1, Second: Sic1-to-Cdh1 -> 0to1"
-    )
+    modification_id = get_state.set_custom_connected_graph(graph=original_graph, graph_identifier="OG Graph")
     graph_score, g1_graph_score, final_state_dict = get_state.generate_graph_score_and_final_states(
         view_state_table=True, view_final_state_count_table=True
     )

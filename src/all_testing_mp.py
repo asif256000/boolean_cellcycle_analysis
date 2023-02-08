@@ -7,10 +7,10 @@ import pandas as pd
 from state_calc import CellCycleStateCalculation
 from utils import all_perturbation_generator, generate_categorical_hist, generate_histogram
 
-NPROC = 4
+NPROC = 6
 
 if __name__ == "__main__":
-    organism = "yeast"
+    organism = "mammal"
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, original_graph
     else:
@@ -27,12 +27,26 @@ if __name__ == "__main__":
     og_g_score, og_g1_score = test_state.get_optimal_scores()
     graph_score_list, g1_graph_score_list, sum_graph_score_list, perturb_freq = list(), list(), list(), dict()
 
-    with mp.Pool(processes=4) as mp_pool:
-        results = mp_pool.imap(
+    t1 = time.time()
+
+    all_perturb_info = list(all_perturbation_generator(nodes=cyclins, graph=original_graph))
+    print(f"Total number of perturbations generated: {len(all_perturb_info)}")
+    with mp.Pool(processes=NPROC) as mp_pool:
+        results = mp_pool.map(
+            # multiprocess_wrapper,
             test_state.mp_generate_graph_score_and_final_states,
-            all_perturbation_generator(nodes=cyclins, graph=original_graph),
+            all_perturb_info,
             chunksize=NPROC,
         )
+
+    # for matrix, modification in all_perturbation_generator(nodes=cyclins, graph=original_graph):
+    #     (
+    #         graph_score,
+    #         g1_graph_param,
+    #         final_state_counts,
+    #         matrix_modifier,
+    #     ) = multiprocess_wrapper(args=(matrix, modification))
+    # ) = test_state.mp_generate_graph_score_and_final_states(graph_info=(matrix, modification))
 
     for graph_score, g1_graph_score, final_state_counts, matrix_modifier in results:
         graph_param = (graph_score - og_g_score) / og_g_score
@@ -52,6 +66,8 @@ if __name__ == "__main__":
             g1_graph_score_list.append(g1_graph_param)
             sum_graph_score_list.append(sum_graph_score_param)
         score_df_list.append([matrix_modifier, graph_score, g1_graph_score, graph_score + g1_graph_score])
+
+    print(f"Time taken: {time.time() - t1} seconds...")
 
     score_df = pd.DataFrame(score_df_list, columns=["Graph Mod Id", "Graph Score", "G1 Graph Score", "Sum Graph Score"])
     score_df.to_csv("Scores.csv")

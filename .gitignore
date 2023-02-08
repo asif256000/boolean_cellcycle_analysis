@@ -166,6 +166,7 @@ cython_debug/
 # Project-specific gitignores
 results/*
 !results/control_graph.log
+!results/mammal_*.log
 <<<<<<< HEAD
 !results/mammal_first_test.log
 figures/*

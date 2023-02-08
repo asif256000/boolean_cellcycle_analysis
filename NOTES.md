@@ -109,3 +109,13 @@ All others can be 0 or 1
 2. Cycle detection and counting for cell states
 3. Look up ARC Registration
 4. Read Mammal Paper for Async Update scheme rules
+
+## Iteration 14: Async Update
+
+Options for Async Update:
+
+- Option 1: Async update all nodes one by one in random order every pass. Result might vary from one execution to another, but it is guaranteed to affect all nodes for every pass.
+- Option 2: Async update all nodes one by one in a specific pre-determined order.
+- Option 3: Async update any randomly chosen node every time. This approach might not affect all the nodes equally every time and the result can be different for every execution.
+
+Option 1 is selected after discussion.
