@@ -1,7 +1,7 @@
 from state_calc import CellCycleStateCalculation
 
 if __name__ == "__main__":
-    organism = "mammal"
+    organism = "yeast"
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, modified_graph, original_graph
     else:
