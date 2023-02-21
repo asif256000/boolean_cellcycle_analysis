@@ -27,7 +27,6 @@ class LogHandler:
 
     def get_logfile_name(self) -> str:
         return f"{self.log_folder_name}/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.log"
-        return f"{self.log_folder_name}/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.log"
 
     def log_formatter(self) -> logging.Formatter:
         return logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")

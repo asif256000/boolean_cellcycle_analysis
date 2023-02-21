@@ -119,3 +119,10 @@ Options for Async Update:
 - Option 3: Async update any randomly chosen node every time. This approach might not affect all the nodes equally every time and the result can be different for every execution.
 
 Option 1 is selected after discussion.
+
+## Iteration 15: Debugging
+
+1. Very low score of budding yeast while running async -> list passed as reference in Python. Causing the issue that starting state was being modified multiple times.
+2. Random order producing same score for all iterations
+3. Third mammalian model
+4. Read up method part of papers to document

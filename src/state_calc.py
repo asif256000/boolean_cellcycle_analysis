@@ -1,5 +1,5 @@
 from copy import deepcopy
-from random import choices
+from random import choices, shuffle
 
 from log_module import logger
 
@@ -15,7 +15,6 @@ class CellCycleStateCalculation:
         random_order_cyclin: bool = True,
     ) -> None:
         self.__all_cyclins = cyclins
-        self.__cyclins_copy = [c for c in cyclins]
         if organism.lower() == "yeast":
             self.__init_yeast_specific_vars()
         else:
@@ -30,6 +29,7 @@ class CellCycleStateCalculation:
         self.__g1_start_states = self.__get_all_g1_states()
         self.__async_update = async_update
         self.__random_order_cyclin = random_order_cyclin
+        logger.debug(f"Class state: {self}")
 
     def __init_yeast_specific_vars(self):
         from yeast_inputs import (
@@ -51,7 +51,7 @@ class CellCycleStateCalculation:
         self.__self_deactivation_flag = True
 
     def __init_mammal_specific_vars(self):
-        from mammal_inputs import (
+        from gb_mammal_inputs import (
             all_final_states_to_ignore,
             expected_cyclin_order,
             expected_final_state,
@@ -71,8 +71,9 @@ class CellCycleStateCalculation:
 
     def __repr__(self) -> str:
         return (
-            f"Class CellCycleStateCalculation. Optimal Graph Score: {self.__optimal_graph_score}, "
-            f"Activation Loop Status: {self.__self_activation_flag}, Detailed Log Flag: {self.detailed_logs}"
+            f"Class CellCycleStateCalculation. Cyclins: {self.__all_cyclins}, "
+            f"Optimal Graph Score: {self.__optimal_graph_score}, "
+            f"Expected Final State: {''.join(map(str, self.__expected_final_state))}"
         )
 
     def __get_all_possible_starting_states(self) -> list[list]:
@@ -129,6 +130,7 @@ class CellCycleStateCalculation:
                     f"Edges {edges} length does not match Cyclins {self.__all_cyclins} length for node number {ix+1}"
                 )
         self.nodes_and_edges = graph
+        self.graph_copy = [row[:] for row in graph]
         logger.debug(f"Set {graph=} for {graph_identifier=}", detail=True)
         self.graph_modification = graph_identifier
 
@@ -141,6 +143,7 @@ class CellCycleStateCalculation:
             change_tracker.append(self.__edge_shuffle(cyclin_len=cyclin_len, graph_to_modify=graph))
 
         self.nodes_and_edges = graph
+        self.graph_copy = [row[:] for row in graph]
 
         return ", ".join(change_tracker)
 
@@ -162,8 +165,8 @@ class CellCycleStateCalculation:
         :param int cyclin_index: The index of the node (cyclin) in the original list of nodes for which the decision is to be made.
         :return bool: True if self degradation is applicable, False otherwise.
         """
-        red_arrow_count = self.nodes_and_edges[cyclin_index].count(-1)
-        green_arrow_count = self.nodes_and_edges[cyclin_index].count(1)
+        red_arrow_count = self.graph_copy[cyclin_index].count(-1)
+        green_arrow_count = self.graph_copy[cyclin_index].count(1)
         if red_arrow_count == 0 or green_arrow_count > red_arrow_count:
             return True
         return False
@@ -176,8 +179,8 @@ class CellCycleStateCalculation:
         :param int cyclin_index: The index of the node (cyclin) in the original list of nodes for which the decision is to be made.
         :return bool: True if self improvement is applicable, False otherwise.
         """
-        green_arrow_count = self.nodes_and_edges[cyclin_index].count(1)
-        red_arrow_count = self.nodes_and_edges[cyclin_index].count(-1)
+        green_arrow_count = self.graph_copy[cyclin_index].count(1)
+        red_arrow_count = self.graph_copy[cyclin_index].count(-1)
         if green_arrow_count == 0 or red_arrow_count > green_arrow_count:
             return True
         return False
@@ -196,10 +199,27 @@ class CellCycleStateCalculation:
         ):
             next_state[cyclin_ix] = 1
 
-    def __modify_graph_with_random_list(self):
-        ...
+    def __modify_graph_with_random_list(self, graph: list[list]) -> tuple[list[int], list[str], list[list]]:
+        modified_graph = [row[:] for row in graph]
+        cyclins_range = list(range(len(self.__all_cyclins)))
+        shuffle(cyclins_range)
+
+        modified_cyclins_list = [self.__all_cyclins[x] for x in cyclins_range]
+        for i, j in enumerate(cyclins_range):
+            modified_graph[i] = [graph[j][x] for x in cyclins_range]
+
+        return cyclins_range, modified_cyclins_list, modified_graph
 
     def __calculate_next_step(self, current_state: list) -> list[int]:
+        if self.__random_order_cyclin:
+            shuffled_indices, _, self.graph_copy = self.__modify_graph_with_random_list(self.nodes_and_edges)
+            current_state = [current_state[i] for i in shuffled_indices]
+        else:
+            shuffled_indices, _, self.graph_copy = (
+                list(range(len(self.__all_cyclins))),
+                self.__all_cyclins,
+                [row[:] for row in self.nodes_and_edges],
+            )
         if self.__async_update:
             next_state = current_state
         else:
@@ -207,7 +227,7 @@ class CellCycleStateCalculation:
 
         for ix, cyclin_state in enumerate(current_state):
             state_value = 0
-            for current_node_index, edge_val in enumerate(self.nodes_and_edges[ix]):
+            for current_node_index, edge_val in enumerate(self.graph_copy[ix]):
                 state_value += edge_val * current_state[current_node_index]
 
             if state_value > 0:
@@ -217,11 +237,12 @@ class CellCycleStateCalculation:
             else:
                 next_state[ix] = cyclin_state
                 self.__decide_self_loops(current_state, next_state, ix)
-        return next_state
+        return shuffled_indices, next_state
 
     def __generate_state_table(self, starting_state: list, iteration_count: int) -> list[list]:
         cyclin_states = [starting_state]
-        curr_state = starting_state
+        shuffled_changes = list()
+        curr_state = [x for x in starting_state]
         verify_seq = False
 
         if self.__g1_states_only_flag:
@@ -235,8 +256,11 @@ class CellCycleStateCalculation:
                 if expected_state_order[0].items() <= dict(zip(self.__all_cyclins, curr_state)).items():
                     found_state = expected_state_order.pop(0)
                     logger.debug(f"Expected State: {found_state} found in Current State: {curr_state}", detail=True)
-            curr_state = self.__calculate_next_step(current_state=curr_state)
+            shuffled_cyclins, curr_state = self.__calculate_next_step(current_state=curr_state)
+            shuffled_changes.append(shuffled_cyclins)
             cyclin_states.append(curr_state)
+
+        logger.debug(f"{shuffled_changes=}", detail=True)
 
         if verify_seq and len(expected_state_order) != 0:
             logger.debug("INVALID SEQUENCE GENERATED!!!", detail=True)
@@ -264,9 +288,11 @@ class CellCycleStateCalculation:
             all_cyclin_states = self.__generate_state_table(starting_state=start_state, iteration_count=51)
             if not all_cyclin_states:
                 final_states.append("X" * len(self.__all_cyclins))
+                curr_final_state = ["X"] * len(self.__all_cyclins)
                 state_score = 100
             elif all_cyclin_states[-1] != all_cyclin_states[-2]:
                 final_states.append("C" * len(self.__all_cyclins))
+                curr_final_state = ["C"] * len(self.__all_cyclins)
                 state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
                     all_cyclin_states[-2]
                 )
@@ -373,11 +399,24 @@ class CellCycleStateCalculation:
             next_state[cyclin_ix] = 1
 
     def __mp_calculate_next_step(self, reqd_graph: list[list], current_state: list) -> list[int]:
-        next_state = [None] * len(self.__all_cyclins)
+        if self.__random_order_cyclin:
+            shuffled_indices, _, modified_graph = self.__modify_graph_with_random_list(reqd_graph)
+            current_state = [current_state[i] for i in shuffled_indices]
+        else:
+            shuffled_indices, _, modified_graph = (
+                list(range(len(self.__all_cyclins))),
+                self.__all_cyclins,
+                reqd_graph,
+            )
+
+        if self.__async_update:
+            next_state = current_state
+        else:
+            next_state = [None] * len(self.__all_cyclins)
 
         for ix, cyclin_state in enumerate(current_state):
             state_value = 0
-            for current_node_index, edge_val in enumerate(reqd_graph[ix]):
+            for current_node_index, edge_val in enumerate(modified_graph[ix]):
                 state_value += edge_val * current_state[current_node_index]
 
             if state_value > 0:
@@ -386,14 +425,20 @@ class CellCycleStateCalculation:
                 next_state[ix] = 0
             else:
                 next_state[ix] = cyclin_state
-                self.__mp_decide_self_loops(reqd_graph, current_state, next_state, ix)
+                self.__mp_decide_self_loops(modified_graph, current_state, next_state, ix)
+
+        if self.__random_order_cyclin:
+            return_state = [None] * len(shuffled_indices)
+            for ix, shuffled_ix in enumerate(shuffled_indices):
+                return_state[shuffled_ix] = next_state[ix]
+            return return_state
         return next_state
 
     def __mp_generate_state_table(
         self, reqd_graph: list[list], graph_mod_id: str, starting_state: list, iteration_count: int
     ) -> list[list]:
         cyclin_states = [starting_state]
-        curr_state = starting_state
+        curr_state = [x for x in starting_state]
         verify_seq = False
 
         if self.__g1_states_only_flag:

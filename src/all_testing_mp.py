@@ -14,7 +14,7 @@ if __name__ == "__main__":
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, original_graph
     else:
-        from mammal_inputs import cyclins, original_graph
+        from gb_mammal_inputs import cyclins, original_graph
 
     test_state = CellCycleStateCalculation(cyclins=cyclins, organism=organism, detailed_logs=False)
 
