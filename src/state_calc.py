@@ -180,8 +180,8 @@ class CellCycleStateCalculation:
         :return bool: True if self improvement is applicable, False otherwise.
         """
         green_arrow_count = self.graph_copy[cyclin_index].count(1)
-        red_arrow_count = self.graph_copy[cyclin_index].count(-1)
-        if green_arrow_count == 0 or red_arrow_count > green_arrow_count:
+        # red_arrow_count = self.graph_copy[cyclin_index].count(-1)
+        if green_arrow_count == 0:  # or red_arrow_count > green_arrow_count:
             return True
         return False
 
@@ -478,7 +478,7 @@ class CellCycleStateCalculation:
                 reqd_graph, graph_mod_id, starting_state=start_state, iteration_count=51
             )
             if not all_cyclin_states:
-                final_states.append("9" * len(self.__all_cyclins))
+                final_states.append("X" * len(self.__all_cyclins))
                 state_score = 100
             elif all_cyclin_states[-1] != all_cyclin_states[-2]:
                 final_states.append("C" * len(self.__all_cyclins))
