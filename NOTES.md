@@ -126,3 +126,16 @@ Option 1 is selected after discussion.
 2. Random order producing same score for all iterations
 3. Third mammalian model
 4. Read up method part of papers to document
+
+## Iteration 16: Debug Async & Method Writing
+
+1. Debug Async Update
+2. Random order with replacement
+3. Method writing from yeast paper - logic of self loops and logic of score update and logic of state updates
+
+## Iteration 17: Faure Model and multiple iterations statistics for random async update
+
+1. Create inputs for Faure model
+2. Iterate 100s of times for random async update and average count for every state
+3. Also note all the different possible final states
+4. Could create a excel spreadsheet with all these info
