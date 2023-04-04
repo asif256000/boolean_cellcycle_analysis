@@ -5,6 +5,7 @@ from pathlib import Path
 
 class LogHandler:
     def __init__(self, name: str):
+        self.curr_datetime = time.gmtime(time.time())
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)
 
@@ -26,7 +27,10 @@ class LogHandler:
         self.ignore_details = flag
 
     def get_logfile_name(self) -> str:
-        return f"{self.log_folder_name}/{time.strftime('%m%d_%H%M%S', time.gmtime(time.time()))}.log"
+        return f"{self.log_folder_name}/{time.strftime('%m%d_%H%M%S', self.curr_datetime)}.log"
+
+    def set_current_datetime(self, datetime: time.gmtime):
+        self.curr_datetime = datetime
 
     def log_formatter(self) -> logging.Formatter:
         return logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")

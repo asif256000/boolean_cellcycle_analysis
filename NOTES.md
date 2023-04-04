@@ -139,3 +139,20 @@ Option 1 is selected after discussion.
 2. Iterate 100s of times for random async update and average count for every state
 3. Also note all the different possible final states
 4. Could create a excel spreadsheet with all these info
+
+## Iteration 18: Faure Model more experiment, Tyson paper, Self Loops
+
+1. Hardcode self loops
+2. Modify logic of cycle
+3. Improve state print by printing what is getting updated
+4. Try to do: Print only states that change
+5. Bug while hardcoding self-loops: own state is also getting considered
+6. Filter states
+
+## Iteration 19: Manual & automated Perturbation to Faure model
+
+1. Create a simplified GB model with skp2, cdc25, wee1 removed.
+2. Try to make faure model as close to gb as possible and check if there is any diff bw the table 1s
+3. 1 perturbation via code
+4. Track number of final states and the state with max count for each perturbation
+5. Remove ubch from faure model

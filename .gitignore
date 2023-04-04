@@ -164,6 +164,7 @@ cython_debug/
 *.prof
 
 # Project-specific gitignores
+other_results/*
 results/*
 !results/control_graph.log
 !results/mammal_*.log

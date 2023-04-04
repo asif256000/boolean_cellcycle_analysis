@@ -12,7 +12,7 @@ class CellCycleStateCalculation:
         g1_states_only: bool = False,
         detailed_logs: bool = False,
         async_update: bool = True,
-        random_order_cyclin: bool = True,
+        random_order_cyclin: bool = False,
     ) -> None:
         self.__all_cyclins = cyclins
         if organism.lower() == "yeast":

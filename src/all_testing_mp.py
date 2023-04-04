@@ -10,7 +10,7 @@ from utils import all_perturbation_generator, generate_categorical_hist, generat
 NPROC = 6
 
 if __name__ == "__main__":
-    organism = "mammal"
+    organism = "yeast"
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, original_graph
     else:
@@ -18,11 +18,13 @@ if __name__ == "__main__":
 
     test_state = CellCycleStateCalculation(cyclins=cyclins, organism=organism, detailed_logs=False)
 
-    test_state.set_custom_connected_graph(graph=original_graph, graph_identifier="Original Graph")
-    graph_score, g1_graph_score, final_state_counts = test_state.generate_graph_score_and_final_states(
-        view_state_table=False, view_final_state_count_table=False
-    )
-    score_df_list = [["Original Graph", graph_score, g1_graph_score, graph_score + g1_graph_score]]
+    # test_state.set_custom_connected_graph(graph=original_graph, graph_identifier="Original Graph")
+    # graph_score, g1_graph_score, final_state_counts = test_state.generate_graph_score_and_final_states(
+    #     view_state_table=False, view_final_state_count_table=False
+    # )
+    # score_df_list = [["Original Graph", graph_score, g1_graph_score, graph_score + g1_graph_score]]
+
+    score_df_list = list()
 
     og_g_score, og_g1_score = test_state.get_optimal_scores()
     graph_score_list, g1_graph_score_list, sum_graph_score_list, perturb_freq = list(), list(), list(), dict()
