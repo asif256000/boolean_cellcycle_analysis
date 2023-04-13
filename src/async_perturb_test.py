@@ -198,8 +198,8 @@ if __name__ == "__main__":
     # single_perturb_details()
 
     it_cnt = 1
-    # final_states_sum, state_seq_count = score_states_multiprocess(iter_count=it_cnt)
-    final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
+    final_states_sum, state_seq_count = score_states_multiprocess(iter_count=it_cnt)
+    # final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
 
     # df_as_list = list()
     # for start_state, state_seq in state_seq_count.items():
