@@ -1,12 +1,7 @@
 from copy import deepcopy
 from random import choice, choices, shuffle
 
-import matplotlib.pyplot as plt
-import networkx as nx
-import pandas as pd
-
 from log_module import logger
-from utils import add_graph_edges, draw_complete_graph
 
 
 class CellCycleStateCalculation:
@@ -33,6 +28,7 @@ class CellCycleStateCalculation:
         self.__random_order_cyclin = input_json["random_order_cyclin"]
         self.__complete_cycle = input_json["complete_cycle"]
         self.__exp_cycle_detection = input_json["expensive_state_cycle_detection"]
+        self.__cell_cycle_activation_cyclin = input_json["cell_cycle_activation_cyclin"]
 
         logger.set_ignore_details_flag(flag=not self.__detailed_logs)
         self.__start_states = self.__get_all_possible_starting_states()
@@ -191,6 +187,10 @@ class CellCycleStateCalculation:
 
         return f"Pos {x=} and {y=} changed {from_val=} {to_val=}"
 
+    def state_as_str(self, state: list) -> str:
+        state_dict = dict(zip(self.__all_cyclins, state))
+        return ", ".join([f"{k}: {v}" for k, v in state_dict.items()])
+
     def __calculate_state_scores(self, final_state: list) -> int:
         score = 0
         for ix, exp_state in enumerate(self.__expected_final_state):
@@ -214,8 +214,9 @@ class CellCycleStateCalculation:
                 return True
             else:
                 return False
-        red_arrow_count = graph_matrix[cyclin_index].count(-1)
-        green_arrow_count = graph_matrix[cyclin_index].count(1)
+        reqd_list = graph_matrix[cyclin_index][:cyclin_index] + graph_matrix[cyclin_index][cyclin_index + 1 :]
+        red_arrow_count = reqd_list.count(-1)
+        green_arrow_count = reqd_list.count(1)
         if red_arrow_count == 0 or green_arrow_count > red_arrow_count:
             return True
         return False
@@ -234,8 +235,9 @@ class CellCycleStateCalculation:
                 return True
             else:
                 return False
-        green_arrow_count = graph_matrix[cyclin_index].count(1)
-        # red_arrow_count = graph_matrix[cyclin_index].count(-1)
+        reqd_list = graph_matrix[cyclin_index][:cyclin_index] + graph_matrix[cyclin_index][cyclin_index + 1 :]
+        green_arrow_count = reqd_list.count(1)
+        # red_arrow_count = reqd_list.count(-1)
         if green_arrow_count == 0:  # or red_arrow_count > green_arrow_count:
             return True
         return False
@@ -285,7 +287,8 @@ class CellCycleStateCalculation:
         for ix, cyclin_state in enumerate(current_state):
             state_value = 0
             for current_ix, edge_val in enumerate(graph_matrix[ix]):
-                state_value += edge_val * current_state[current_ix]
+                if current_ix != ix:
+                    state_value += edge_val * current_state[current_ix]
 
             if state_value > 0:
                 next_state[ix] = 1
@@ -374,36 +377,44 @@ class CellCycleStateCalculation:
             filtered_states[-i:] == filtered_states[-2 * i : -i] for i in range(2, len(filtered_states) // 2 + 1)
         )
 
+    def __check_activation_index(self, all_states: list) -> int:
+        default_ix = -1
+        target_cyclin_ix = self.__get_cyclin_index(self.__cell_cycle_activation_cyclin)
+        filtered_states = self.remove_continuous_duplicates(all_states)
+        if filtered_states[0][target_cyclin_ix] == 1:
+            return default_ix
+        for ix, state in enumerate(filtered_states):
+            if state[target_cyclin_ix] == 1:
+                return ix
+        return default_ix
+
     def __iterate_all_start_states(self, graph_matrix: list[list], graph_mod_id: str) -> tuple[dict, list]:
         state_scores_dict = dict()
         final_states = list()
         incorrect_seq_tracker = list()
         correct_seq_tracker = list()
+        not_started_seq_tracker = list()
+        state_seq_type = dict()
 
         if self.__g1_states_only_flag:
             all_start_states = self.__g1_start_states
         else:
             all_start_states = self.__start_states
 
-        # graph_edges = list()
         for start_state in all_start_states:
+            cell_div_start_flag = False
             all_cyclin_states, update_sequence = self.__generate_state_table(
                 graph_matrix=graph_matrix, graph_mod_id=graph_mod_id, start_state=start_state, iter_count=50
             )
+            if self.__check_activation_index(all_cyclin_states) != -1:
+                cell_div_start_flag = True
 
-            # filtered_states = [
-            #     "".join(map(str, v)) for i, v in enumerate(all_cyclin_states) if i == 0 or v != all_cyclin_states[i - 1]
-            # ]
-            # add_graph_edges(filtered_states, graph_edges)
-
-            if not all_cyclin_states:
-                final_states.append("X" * len(self.__all_cyclins))
-                state_score = 100
-            elif self.__exp_cycle_detection and self.__detect_end_cycles(all_cyclin_states):
+            if self.__exp_cycle_detection and self.__detect_end_cycles(all_cyclin_states):
                 final_states.append("C" * len(self.__all_cyclins))
                 state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
                     all_cyclin_states[-2]
                 )
+                logger.debug(f"Cycle found for start state: {str(dict(zip(self.__all_cyclins, start_state)))}")
             elif not self.__exp_cycle_detection and self.__lazy_detect_cycles(all_cyclin_states):
                 final_states.append("C" * len(self.__all_cyclins))
                 state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
@@ -414,39 +425,39 @@ class CellCycleStateCalculation:
                 final_states.append("".join(map(str, curr_final_state)))
                 state_score = self.__calculate_state_scores(curr_final_state)
 
-            if self.__check_sequence:
-                if self.verify_sequence(all_cyclin_states):
-                    correct_seq_tracker.append(dict(zip(self.__all_cyclins, start_state)))
-                else:
-                    logger.debug(
-                        f"Correct Cyclin order not followed for start_state {dict(zip(self.__all_cyclins, start_state))}",
-                        detail=True,
-                    )
-                    incorrect_seq_tracker.append(dict(zip(self.__all_cyclins, start_state)))
-
             state_scores_dict["".join(map(str, start_state))] = state_score
             if self.__view_state_table:
-                logger.debug(f"staarting state: {dict(zip(self.__all_cyclins, start_state))}", detail=True)
                 self.print_state_table(all_cyclin_states, update_sequence)
 
-        tracked_incorrect_states = "\n".join(map(str, incorrect_seq_tracker))
-        tracked_correct_states = "\n".join(map(str, correct_seq_tracker))
-        logger.debug(
-            f"A total {len(incorrect_seq_tracker)} starting states out of {len(all_start_states)} "
-            f"did not go through correct sequence.\nStates with incorrect seq are:\n{tracked_incorrect_states}\n"
-            f"The states that followed correct order are:\n{tracked_correct_states}",
-            detail=True,
-        )
+            curr_start_state_str = self.state_as_str(start_state)
+            if self.__check_sequence:
+                if not cell_div_start_flag:
+                    not_started_seq_tracker.append(curr_start_state_str)
+                    state_seq_type["".join(map(str, start_state))] = "did_not_start"
+                    continue
+                if self.verify_sequence(all_cyclin_states):
+                    correct_seq_tracker.append(curr_start_state_str)
+                    state_seq_type["".join(map(str, start_state))] = "correct"
+                else:
+                    logger.debug("Correct Cyclin order not followed for this start_state", detail=True)
+                    incorrect_seq_tracker.append(curr_start_state_str)
+                    state_seq_type["".join(map(str, start_state))] = "incorrect"
 
-        # edge_count = dict()
-        # for edge in list(set(graph_edges)):
-        #     edge_count[f"{edge[0]} (interacts with) {edge[1]}"] = graph_edges.count(edge)
-        # edge_df = pd.DataFrame(list(set(graph_edges)), columns=["source", "target"])
-        # edge_df.to_csv("all_edges.csv", index=False)
-        # edge_count_df = pd.DataFrame(edge_count.items(), columns=["shared name", "count"])
-        # edge_count_df.to_csv("all_edge_count.csv", index=False)
+        # tracked_correct_states = "\n".join(correct_seq_tracker)
+        # tracked_incorrect_states = "\n".join(incorrect_seq_tracker)
+        # non_started_states = "\n".join(not_started_seq_tracker)
+        logs = [
+            f"\nA total {len(correct_seq_tracker)} starting states out of {len(all_start_states)} went through correct sequence.",
+            f"A total {len(incorrect_seq_tracker)} starting states out of {len(all_start_states)} did not go through correct sequence.",
+            f"A total {len(not_started_seq_tracker)} starting states out of {len(all_start_states)} did start cell cycle",
+            f"i.e it did not turn or started with {self.__cell_cycle_activation_cyclin} as 1 in the cell cycle.",
+            # f"The states that followed correct order are:\n{tracked_correct_states}",
+            # f"The states that did not follow correct order are:\n{tracked_incorrect_states}",
+            # f"The states that did not start cell cycle are:\n{non_started_states}",
+        ]
+        logger.debug("\n".join(logs), detail=True)
 
-        return state_scores_dict, final_states
+        return state_scores_dict, final_states, state_seq_type
 
     def verify_sequence(self, all_states: list) -> bool:
         """Checks if the state path that was traversed follows expected order. Returns True if it follows correct sequence, otherwise returns False.
@@ -468,7 +479,7 @@ class CellCycleStateCalculation:
 
     def generate_graph_score_and_final_states(
         self, graph_info: tuple[list[list], str] = None
-    ) -> tuple[int, int, dict, str]:
+    ) -> tuple[int, int, dict, dict]:
         logger.set_ignore_details_flag(flag=not self.__detailed_logs)
 
         if graph_info:
@@ -476,7 +487,7 @@ class CellCycleStateCalculation:
         else:
             graph_matrix, graph_mod_id = self.nodes_and_edges, self.graph_modification
 
-        state_scores, final_states = self.__iterate_all_start_states(graph_matrix, graph_mod_id)
+        state_scores, final_states, state_seq_types = self.__iterate_all_start_states(graph_matrix, graph_mod_id)
         final_state_count = self.__generate_final_state_counts(final_states)
         graph_score = sum(state_scores.values())
 
@@ -486,11 +497,10 @@ class CellCycleStateCalculation:
             self.print_final_state_count_table(final_state_count)
 
         g1_graph_score = 0
-        # What to do about the G1 sequence?
 
-        return graph_score, g1_graph_score, final_state_count, graph_mod_id
+        return graph_score, g1_graph_score, final_state_count, state_seq_types
 
-    def print_final_state_count_table(self, final_state_count: dict, log_level: str = "debug"):
+    def print_final_state_count_table_fallback(self, final_state_count: dict, log_level: str = "debug"):
         table_as_str = f"\n{self.cyclin_print_map}\n"
         table_as_str += "\t|\t".join(["Cnt"] + list(self.cyclin_print_map))
         table_as_str += "\t|\n"
@@ -504,16 +514,18 @@ class CellCycleStateCalculation:
         else:
             logger.debug(table_as_str)
 
-    def print_state_table(self, cyclin_states: list, random_update_sequence: list, log_level: str = "debug"):
+    def print_state_table_fallback(self, cyclin_states: list, random_update_sequence: list, log_level: str = "debug"):
         inv_cyclin_lookup = {v: k for k, v in self.cyclin_print_map.items()}
-        table_as_str = f"\n{self.cyclin_print_map}\n"
+
+        curr_tracked_state = cyclin_states[0]
+        table_as_str = f"State sequence for start state: {self.state_as_str(curr_tracked_state)}\n"
+        table_as_str += f"\n{self.cyclin_print_map}\n"
         table_as_str += "\t|\t".join(["Tm"] + list(self.cyclin_print_map))
         if random_update_sequence:
             table_as_str += "\t|\tUpd\t|\n"
         else:
             table_as_str += "\t|\n"
 
-        curr_tracked_state = cyclin_states[0]
         for ix, ix_state in enumerate(cyclin_states[1:]):
             if self.__view_state_change_only and ix_state == curr_tracked_state:
                 continue
@@ -523,6 +535,43 @@ class CellCycleStateCalculation:
                 table_as_str += f"\t|\t{inv_cyclin_lookup[random_update_sequence[ix]]}\t|\n"
             else:
                 table_as_str += "\t|\n"
+            curr_tracked_state = ix_state
+
+        if log_level.lower() == "info":
+            logger.info(table_as_str)
+        else:
+            logger.debug(table_as_str)
+
+    def print_final_state_count_table(self, final_state_count: dict, log_level: str = "debug"):
+        table_as_str = "Count of final state for each start states:\n"
+        for state, count in final_state_count.items():
+            table_as_str += f"Count: {count:>05}, "
+            table_as_str += self.state_as_str(state)
+            table_as_str += "\n"
+
+        if log_level.lower() == "info":
+            logger.info(table_as_str)
+        else:
+            logger.debug(table_as_str)
+
+    def print_state_table(self, cyclin_states: list, random_update_sequence: list, log_level: str = "debug"):
+        curr_tracked_state = cyclin_states[0]
+        table_as_str = f"State sequence for start state: {self.state_as_str(curr_tracked_state)}\n"
+        table_as_str += "Time: 0000, " + self.state_as_str(curr_tracked_state)
+        if random_update_sequence:
+            table_as_str += ", Update: Start\n"
+        else:
+            table_as_str += "\n"
+
+        for ix, ix_state in enumerate(cyclin_states[1:]):
+            if self.__view_state_change_only and ix_state == curr_tracked_state:
+                continue
+            table_as_str += f"Time: {ix+1:>04}, "
+            table_as_str += self.state_as_str(ix_state)
+            if random_update_sequence:
+                table_as_str += f", Update: {random_update_sequence[ix]}\n"
+            else:
+                table_as_str += "\n"
             curr_tracked_state = ix_state
 
         if log_level.lower() == "info":

@@ -15,46 +15,58 @@ def mp_wrapper(state_calc_obj: CellCycleStateCalculation):
         graph_score,
         g1_graph_score,
         final_state_dict,
-        graph_mod_id,
+        state_seq_type,
     ) = state_calc_obj.generate_graph_score_and_final_states()
-    return graph_score, g1_graph_score, final_state_dict, graph_mod_id
+    return graph_score, g1_graph_score, final_state_dict, state_seq_type
 
 
 def score_states_multiprocess(iter_count: int):
     all_final_state_sum = dict()
+    all_state_seq_type = dict()
+
     with mp.Pool(processes=NPROC) as mp_pool:
         results = mp_pool.map(
             func=mp_wrapper,
             iterable=[cell_state_calc for _ in range(iter_count)],
             chunksize=NPROC,
         )
-    for graph_score, g1_graph_score, final_state_dict, graph_mod_id in results:
+
+    for graph_score, g1_graph_score, final_state_dict, state_seq_type in results:
         for final_state, state_count in final_state_dict.items():
             if final_state in all_final_state_sum.keys():
                 all_final_state_sum[final_state] += state_count
             else:
                 all_final_state_sum[final_state] = state_count
+        for start_state, seq_type in state_seq_type.items():
+            if start_state not in all_state_seq_type.keys():
+                all_state_seq_type[start_state] = {"correct": 0, "incorrect": 0, "did_not_start": 0}
+            all_state_seq_type[start_state][seq_type] += 1
 
-    return all_final_state_sum
+    return all_final_state_sum, all_state_seq_type
 
 
 def score_states(iter_count: int):
     all_final_state_sum = dict()
+    all_state_seq_type = dict()
 
     for i in range(iter_count):
         (
             graph_score,
             g1_graph_score,
             final_state_dict,
-            graph_mod_id,
+            state_seq_type,
         ) = cell_state_calc.generate_graph_score_and_final_states()
         for final_state, state_count in final_state_dict.items():
             if final_state in all_final_state_sum.keys():
                 all_final_state_sum[final_state] += state_count
             else:
                 all_final_state_sum[final_state] = state_count
+        for start_state, seq_type in state_seq_type.items():
+            if start_state not in all_state_seq_type.keys():
+                all_state_seq_type[start_state] = {"correct": 0, "incorrect": 0, "did_not_start": 0}
+            all_state_seq_type[start_state][seq_type] += 1
 
-    return all_final_state_sum
+    return all_final_state_sum, all_state_seq_type
 
 
 def agg_count_to_csv(final_state_agg, cyclins, filename):
@@ -93,23 +105,23 @@ def single_perturb_details():
         graph_score,
         g1_graph_score,
         final_state_dict,
-        graph_mod_id,
+        state_seq_type,
     ) = cell_state_calc.generate_graph_score_and_final_states()
     graph_image_path = Path("figures", "working_graph.png")
     draw_graph_from_matrix(nodes=cyclins, matrix=working_graph, graph_img_path=graph_image_path)
 
     max_count, max_states = get_states_with_max_count(nodes=cyclins, states_count=final_state_dict)
-    perturb_details = [[graph_mod_id, len(final_state_dict), max_count, max_states]]
+    perturb_details = [[state_seq_type, len(final_state_dict), max_count, max_states]]
 
     for single_perturb_graph, graph_mod_id in single_perturbation_generator(nodes=cyclins, graph=working_graph):
         (
             graph_score,
             g1_graph_score,
             final_state_dict,
-            graph_mod_id,
+            state_seq_type,
         ) = cell_state_calc.generate_graph_score_and_final_states(graph_info=(single_perturb_graph, graph_mod_id))
         max_count, max_states = get_states_with_max_count(nodes=cyclins, states_count=final_state_dict)
-        perturb_details.append([graph_mod_id, len(final_state_dict), max_count, max_states])
+        perturb_details.append([state_seq_type, len(final_state_dict), max_count, max_states])
 
     perturb_details_df = pd.DataFrame(
         perturb_details, columns=["Graph Modification ID", "Unique State Count", "Max State Count", "Max State(s)"]
@@ -125,10 +137,12 @@ def single_perturb_details():
 
 
 if __name__ == "__main__":
-    organism = "fr_mammal"
+    organism = "yeast"
 
     if organism.lower() == "yeast":
-        from yeast_inputs import cyclins, modified_graph, original_graph
+        from yeast_inputs import cyclins, g1_state_one_cyclins, g1_state_zero_cyclins, modified_graph, original_graph
+
+        target_ix = 3
     elif organism.lower() == "gb_mammal":
         from gb_mammal_inputs import (
             cyclins,
@@ -137,6 +151,8 @@ if __name__ == "__main__":
             modified_graph,
             original_graph,
         )
+
+        target_ix = 1
     elif organism.lower() == "fr_mammal":
         from fr_mammal_inputs import (
             cyclins,
@@ -145,6 +161,8 @@ if __name__ == "__main__":
             modified_graph,
             original_graph,
         )
+
+        target_ix = 1
 
     calc_params = {
         "cyclins": cyclins,
@@ -160,9 +178,10 @@ if __name__ == "__main__":
         "random_order_cyclin": True,
         "complete_cycle": False,
         "expensive_state_cycle_detection": True,
+        "cell_cycle_activation_cyclin": cyclins[target_ix],
     }
 
-    filter_states = True
+    filter_states = False
 
     all_final_state_agg = dict()
 
@@ -179,8 +198,16 @@ if __name__ == "__main__":
     # single_perturb_details()
 
     it_cnt = 1
-    # final_states_sum = score_states_multiprocess(iter_count=it_cnt)
-    final_states_sum = score_states(iter_count=it_cnt)
+    # final_states_sum, state_seq_count = score_states_multiprocess(iter_count=it_cnt)
+    final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
+
+    # df_as_list = list()
+    # for start_state, state_seq in state_seq_count.items():
+    #     df_as_list.append(
+    #         list(start_state) + [state_seq["correct"], state_seq["incorrect"], state_seq["did_not_start"]]
+    #     )
+    # df = pd.DataFrame(df_as_list, columns=[cyclins + ["correct", "incorrect", "did_not_start"]])
+    # df.to_csv(Path("other_results", f"state_seq_{it_cnt}_{organism}.csv"), index=False)
 
     # for final_state, sum_count in final_states_sum.items():
     #     all_final_state_agg[final_state] = round(sum_count / it_cnt)

@@ -284,24 +284,24 @@ class CellCycleStateCalculation:
         graph_score = sum(state_scores.values())
 
         logger.debug(f"{graph_score=} for {self.graph_modification=}")
-        if graph_score <= self.optimal_graph_score:
-            logger.debug(f"GRAPH SCORE LESS THAN OR EQUAL TO {self.optimal_graph_score=}")
-            logger.debug("Taking a deeper dive into the sequence of states for G1 start states...")
-            self.start_states = self.__get_all_g1_states()
-            g1_state_scores, g1_final_states = self.iterate_all_states(view_state_table, g1_states_only=True)
-            g1_final_state_count = dict()
-            for g1_fs in set(g1_final_states):
-                g1_final_state_count[g1_fs] = g1_final_states.count(g1_fs)
-            g1_state_score_map = {uniq_score: "" for uniq_score in set(g1_state_scores.values())}
-            for g1_state, state_score in g1_state_scores.items():
-                g1_state_score_map[state_score] += g1_state
-                g1_state_score_map[state_score] += ", "
-            g1_graph_score = sum(g1_state_scores.values())
-            logger.debug(f"For {self.graph_modification=} {g1_graph_score=}")
-            if g1_graph_score <= self.optimal_g1_graph_score:
-                logger.debug(
-                    f"G1 GRAPH SCORE LESS THAN OPTIMAL FOUND!!! {g1_final_state_count=}, {g1_state_score_map=}"
-                )
+        # if graph_score <= self.optimal_graph_score:
+        #     logger.debug(f"GRAPH SCORE LESS THAN OR EQUAL TO {self.optimal_graph_score=}")
+        #     logger.debug("Taking a deeper dive into the sequence of states for G1 start states...")
+        #     self.start_states = self.__get_all_g1_states()
+        #     g1_state_scores, g1_final_states = self.iterate_all_states(view_state_table, g1_states_only=True)
+        #     g1_final_state_count = dict()
+        #     for g1_fs in set(g1_final_states):
+        #         g1_final_state_count[g1_fs] = g1_final_states.count(g1_fs)
+        #     g1_state_score_map = {uniq_score: "" for uniq_score in set(g1_state_scores.values())}
+        #     for g1_state, state_score in g1_state_scores.items():
+        #         g1_state_score_map[state_score] += g1_state
+        #         g1_state_score_map[state_score] += ", "
+        #     g1_graph_score = sum(g1_state_scores.values())
+        #     logger.debug(f"For {self.graph_modification=} {g1_graph_score=}")
+        #     if g1_graph_score <= self.optimal_g1_graph_score:
+        #         logger.debug(
+        #             f"G1 GRAPH SCORE LESS THAN OPTIMAL FOUND!!! {g1_final_state_count=}, {g1_state_score_map=}"
+        #         )
 
         return graph_score, final_states_count
 

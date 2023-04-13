@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import seaborn as sns
 
+from yeast_inputs import cyclins, modified_graph, original_graph
+
 
 def all_perturbation_recursive_generator(graph: list[list], start_pos: int = 0):
     possible_weights = {-1, 0, 1}
@@ -118,10 +120,19 @@ def draw_complete_graph(all_graph_edges: list, fig_size: tuple = (50, 50), graph
         with_labels=True,
         node_shape="o",
         label="NewGraph",
-        nodelist=["start_state", "end_state"],
+        nodelist=["start", "end"],
     )
     plt.savefig(graph_img_name)
     plt.close()
+
+
+def get_all_edges(all_paths: list[list]) -> list:
+    graph_edges = list()
+    for single_path in all_paths:
+        graph_edges.append([single_path[0], single_path[1]])
+        for ix, node in enumerate(graph_edges[1:-2]):
+            graph_edges.append([node, single_path[ix + 1]])
+    return graph_edges
 
 
 def draw_graph_from_matrix(nodes: list, matrix: list[list], graph_img_path: Path = Path("interaction_graph")):
@@ -175,7 +186,8 @@ if __name__ == "__main__":
     #     print(f"{pert_graph=}, {graph_mod=}")
     #     i += 1
     # print(i)
-    draw_graph_from_matrix(nodes, edges)
+    draw_graph_from_matrix(cyclins, original_graph, graph_img_path=Path("figures", "original_graph.png"))
+    draw_graph_from_matrix(cyclins, modified_graph, graph_img_path=Path("figures", "modified_graph.png"))
     # for mod_graph, pert_id in all_perturbation_generator(nodes=nodes, graph=edges):
     #     print(f"{pert_id=}")
     #     for m in mod_graph:

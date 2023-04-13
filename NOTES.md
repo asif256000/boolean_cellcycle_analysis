@@ -156,3 +156,14 @@ Option 1 is selected after discussion.
 3. 1 perturbation via code
 4. Track number of final states and the state with max count for each perturbation
 5. Remove ubch from faure model
+
+## Iteration 20
+
+1. If CyclinD goes to 0 before E2F1 goes to 1, then it is not incorrect order, rather cell cycle did not progress.
+2. For each starting state, note how many times goes through correct order, incorrect order, does not start out of maybe 100 executions.
+
+## Iteration 21
+
+1. Async update for yeast cell cycle model.
+2. Final state count table and 5000 iteration avg table should be presented.
+3. Finally have 4 models: Yeast, GB, Tyson1, Tyson2 (with P21 self loop) - find metrics for all models.

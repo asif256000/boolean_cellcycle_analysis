@@ -1,7 +1,9 @@
 cyclins = ["CycD", "CycE", "CycA", "Cdc20", "CycB", "E2F", "RB", "P27", "Cdh1", "Cdc14"]
 
-g1_state_zero_cyclins = []
-g1_state_one_cyclins = ["CycD", "RB", "P27", "Cdh1"]
+g1_state_zero_cyclins = []  # ["CycE", "CycA", "CycB", "Cdc20"]
+g1_state_one_cyclins = []  # ["CycD", "RB", "P27", "Cdh1"]
+# g1_state_zero_cyclins = ["CycE", "CycA", "Cdc20", "CycB", "E2F", "Cdc14"]
+# g1_state_one_cyclins = ["CycD", "RB", "P27", "Cdh1"]
 
 expected_final_state = [1, 1, 1, 1, 0, 1, 0, 0, 0, 0]
 
@@ -9,6 +11,7 @@ expected_cyclin_order = [
     {"E2F": 1, "CycE": 0, "CycA": 0, "CycB": 0, "Cdc20": 0},
     {"CycE": 1, "CycA": 0, "CycB": 0, "Cdc20": 0},
     {"CycA": 1, "CycB": 0, "Cdc20": 0},
+    {"CycB": 1, "Cdc20": 0},
     {"Cdc20": 1},
 ]
 
@@ -34,7 +37,7 @@ modified_graph = [
     [0, 0, 0, -1, 1, 0, 0, 0, -1, 0],
     [0, 0, -1, 0, -1, 1, -1, 0, 0, 0],
     [-1, -1, -1, 1, -1, 0, 1, 0, 0, 1],
-    [-1, -1, -1, 1, 0, 0, 0, 1, 0, 1],
+    [-1, -1, -1, 1, 0, 0, 0, 0, 0, 1],
     [0, -1, -1, 1, -1, 0, 0, 0, 0, 1],
     [0, 0, 0, 1, 0, 0, 0, 0, 0, -1],
 ]
