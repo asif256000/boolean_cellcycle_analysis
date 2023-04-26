@@ -69,12 +69,26 @@ def score_states(iter_count: int):
     return all_final_state_sum, all_state_seq_type
 
 
-def agg_count_to_csv(final_state_agg, cyclins, filename):
-    data_list = [list(state) + [agg_count] for state, agg_count in final_state_agg.items()]
+def agg_count_to_csv(final_states: dict, cyclins: list, filename: str):
+    all_final_state_agg = dict()
+    for final_state, sum_count in final_states.items():
+        all_final_state_agg[final_state] = round(sum_count / it_cnt)
+
+    data_list = [list(state) + [agg_count] for state, agg_count in all_final_state_agg.items()]
 
     final_state_df = pd.DataFrame(data_list, columns=cyclins + ["Avg Count"])
     csv_path = Path("other_results", filename)
     final_state_df.to_csv(csv_path)
+
+
+def state_seq_to_csv(state_seq_count: dict, filename: str):
+    df_as_list = list()
+    for start_state, state_seq in state_seq_count.items():
+        df_as_list.append(
+            list(start_state) + [state_seq["correct"], state_seq["incorrect"], state_seq["did_not_start"]]
+        )
+    df = pd.DataFrame(df_as_list, columns=[cyclins + ["correct", "incorrect", "did_not_start"]])
+    df.to_csv(Path("other_results", filename))
 
 
 def state_to_dict(nodes: list, state: str) -> dict:
@@ -137,12 +151,12 @@ def single_perturb_details():
 
 
 if __name__ == "__main__":
-    organism = "yeast"
+    organism = "fr_mammal"
 
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, g1_state_one_cyclins, g1_state_zero_cyclins, modified_graph, original_graph
 
-        target_ix = 3
+        target_ix = 7
     elif organism.lower() == "gb_mammal":
         from gb_mammal_inputs import (
             cyclins,
@@ -181,9 +195,7 @@ if __name__ == "__main__":
         "cell_cycle_activation_cyclin": cyclins[target_ix],
     }
 
-    filter_states = False
-
-    all_final_state_agg = dict()
+    filter_states = True
 
     working_graph = modified_graph
     cell_state_calc = CellCycleStateCalculation(input_json=calc_params)
@@ -197,21 +209,11 @@ if __name__ == "__main__":
 
     # single_perturb_details()
 
-    it_cnt = 1
-    final_states_sum, state_seq_count = score_states_multiprocess(iter_count=it_cnt)
+    it_cnt = 1000
+    final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
     # final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
 
-    # df_as_list = list()
-    # for start_state, state_seq in state_seq_count.items():
-    #     df_as_list.append(
-    #         list(start_state) + [state_seq["correct"], state_seq["incorrect"], state_seq["did_not_start"]]
-    #     )
-    # df = pd.DataFrame(df_as_list, columns=[cyclins + ["correct", "incorrect", "did_not_start"]])
-    # df.to_csv(Path("other_results", f"state_seq_{it_cnt}_{organism}.csv"), index=False)
-
-    # for final_state, sum_count in final_states_sum.items():
-    #     all_final_state_agg[final_state] = round(sum_count / it_cnt)
-
-    # agg_count_to_csv(
-    #     final_state_agg=all_final_state_agg, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
-    # )
+    state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
+    agg_count_to_csv(
+        final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
+    )

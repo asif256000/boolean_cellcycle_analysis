@@ -44,11 +44,10 @@ custom_start_state = [
     # [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
 ]
 
-g1_state_zero_cyclins = ["Swi5", "Cdc2014", "Clb5,6", "Clb1,2", "Mcm1,SFF"]
-g1_state_one_cyclins = []
+g1_state_zero_cyclins = ["Cdc2014", "Clb5,6", "Cln1,2", "Clb1,2", "Mcm1,SFF"]
+g1_state_one_cyclins = ["Cln3", "Cdh1", "Sic1"]
 
 expected_cyclin_order = [
-    {"Cln1,2": 1, "Clb5,6": 0, "Clb1,2": 0, "Cdc2014": 0},
     {"Clb5,6": 1, "Clb1,2": 0, "Cdc2014": 0},
     {"Clb1,2": 1, "Cdc2014": 0},
     {"Cdc2014": 1},

@@ -444,16 +444,16 @@ class CellCycleStateCalculation:
                     state_seq_type["".join(map(str, start_state))] = "incorrect"
 
         # tracked_correct_states = "\n".join(correct_seq_tracker)
-        # tracked_incorrect_states = "\n".join(incorrect_seq_tracker)
-        # non_started_states = "\n".join(not_started_seq_tracker)
+        tracked_incorrect_states = "\n".join(incorrect_seq_tracker)
+        non_started_states = "\n".join(not_started_seq_tracker)
         logs = [
             f"\nA total {len(correct_seq_tracker)} starting states out of {len(all_start_states)} went through correct sequence.",
             f"A total {len(incorrect_seq_tracker)} starting states out of {len(all_start_states)} did not go through correct sequence.",
             f"A total {len(not_started_seq_tracker)} starting states out of {len(all_start_states)} did start cell cycle",
             f"i.e it did not turn or started with {self.__cell_cycle_activation_cyclin} as 1 in the cell cycle.",
             # f"The states that followed correct order are:\n{tracked_correct_states}",
-            # f"The states that did not follow correct order are:\n{tracked_incorrect_states}",
-            # f"The states that did not start cell cycle are:\n{non_started_states}",
+            f"The states that did not follow correct order are:\n{tracked_incorrect_states}",
+            f"The states that did not start cell cycle are:\n{non_started_states}",
         ]
         logger.debug("\n".join(logs), detail=True)
 
