@@ -170,3 +170,4 @@ results/*
 !results/mammal_*.log
 figures/*
 !figures/all_perturbations
+*.pptx

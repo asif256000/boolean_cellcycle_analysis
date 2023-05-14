@@ -1,6 +1,7 @@
 import multiprocessing as mp
 import os
 from pathlib import Path
+from time import time
 
 import pandas as pd
 
@@ -151,7 +152,8 @@ def single_perturb_details():
 
 
 if __name__ == "__main__":
-    organism = "fr_mammal"
+    start_time = time()
+    organism = "gb_mammal"
 
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, g1_state_one_cyclins, g1_state_zero_cyclins, modified_graph, original_graph
@@ -181,7 +183,7 @@ if __name__ == "__main__":
     calc_params = {
         "cyclins": cyclins,
         "organism": organism,
-        "detailed_logs": True,
+        "detailed_logs": False,
         "hardcoded_self_loops": True,
         "check_sequence": True,
         "g1_states_only": False,
@@ -195,7 +197,7 @@ if __name__ == "__main__":
         "cell_cycle_activation_cyclin": cyclins[target_ix],
     }
 
-    filter_states = True
+    filter_states = False
 
     working_graph = modified_graph
     cell_state_calc = CellCycleStateCalculation(input_json=calc_params)
@@ -217,3 +219,6 @@ if __name__ == "__main__":
     agg_count_to_csv(
         final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
     )
+
+    end_time = time()
+    print(f"Execution completed in {end_time - start_time} seconds for {it_cnt} iterations for {organism} cell cycle.")

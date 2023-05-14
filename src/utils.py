@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import seaborn as sns
 
-from fr_mammal_inputs import cyclins, modified_graph, original_graph
+from input_testing import cyclins, modified_graph, original_graph
 
 
 def all_perturbation_recursive_generator(graph: list[list], start_pos: int = 0):
