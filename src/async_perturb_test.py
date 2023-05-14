@@ -14,11 +14,10 @@ NPROC = 6
 def mp_wrapper(state_calc_obj: CellCycleStateCalculation):
     (
         graph_score,
-        g1_graph_score,
         final_state_dict,
         state_seq_type,
     ) = state_calc_obj.generate_graph_score_and_final_states()
-    return graph_score, g1_graph_score, final_state_dict, state_seq_type
+    return graph_score, final_state_dict, state_seq_type
 
 
 def score_states_multiprocess(iter_count: int):
@@ -53,7 +52,6 @@ def score_states(iter_count: int):
     for i in range(iter_count):
         (
             graph_score,
-            g1_graph_score,
             final_state_dict,
             state_seq_type,
         ) = cell_state_calc.generate_graph_score_and_final_states()
@@ -118,7 +116,6 @@ def execute_perturb_mp():
 def single_perturb_details():
     (
         graph_score,
-        g1_graph_score,
         final_state_dict,
         state_seq_type,
     ) = cell_state_calc.generate_graph_score_and_final_states()
@@ -131,7 +128,6 @@ def single_perturb_details():
     for single_perturb_graph, graph_mod_id in single_perturbation_generator(nodes=cyclins, graph=working_graph):
         (
             graph_score,
-            g1_graph_score,
             final_state_dict,
             state_seq_type,
         ) = cell_state_calc.generate_graph_score_and_final_states(graph_info=(single_perturb_graph, graph_mod_id))
@@ -211,7 +207,7 @@ if __name__ == "__main__":
 
     # single_perturb_details()
 
-    it_cnt = 1000
+    it_cnt = 1
     final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
     # final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
 

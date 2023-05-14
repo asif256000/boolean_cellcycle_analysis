@@ -430,7 +430,7 @@ class CellCycleStateCalculation:
                 self.print_state_table(all_cyclin_states, update_sequence)
 
             curr_start_state_str = self.state_as_str(start_state)
-            if self.__check_sequence:
+            if self.__check_sequence or self.__g1_states_only_flag:
                 if not cell_div_start_flag:
                     not_started_seq_tracker.append(curr_start_state_str)
                     state_seq_type["".join(map(str, start_state))] = "did_not_start"
@@ -491,14 +491,12 @@ class CellCycleStateCalculation:
         final_state_count = self.__generate_final_state_counts(final_states)
         graph_score = sum(state_scores.values())
 
-        logger.debug(f"{graph_score=} for graph modification={graph_mod_id}", detail=True)
+        logger.debug(f"{graph_score=} for graph modification={graph_mod_id}")
 
         if self.__view_final_state_count_table:
             self.print_final_state_count_table(final_state_count)
 
-        g1_graph_score = 0
-
-        return graph_score, g1_graph_score, final_state_count, state_seq_types
+        return graph_score, final_state_count, state_seq_types
 
     def print_final_state_count_table_fallback(self, final_state_count: dict, log_level: str = "debug"):
         table_as_str = f"\n{self.cyclin_print_map}\n"
@@ -577,4 +575,4 @@ class CellCycleStateCalculation:
         if log_level.lower() == "info":
             logger.info(table_as_str)
         else:
-            logger.debug(table_as_str)
+            logger.debug(table_as_str, detail=True)
