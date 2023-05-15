@@ -430,7 +430,7 @@ class CellCycleStateCalculation:
                 self.print_state_table(all_cyclin_states, update_sequence)
 
             curr_start_state_str = self.state_as_str(start_state)
-            if self.__check_sequence or self.__g1_states_only_flag:
+            if self.__check_sequence:
                 if not cell_div_start_flag:
                     not_started_seq_tracker.append(curr_start_state_str)
                     state_seq_type["".join(map(str, start_state))] = "did_not_start"
@@ -442,6 +442,9 @@ class CellCycleStateCalculation:
                     logger.debug("Correct Cyclin order not followed for this start_state", detail=True)
                     incorrect_seq_tracker.append(curr_start_state_str)
                     state_seq_type["".join(map(str, start_state))] = "incorrect"
+                    if start_state in self.__g1_start_states:
+                        state_score += 100
+                        state_scores_dict["".join(map(str, start_state))] = state_score
 
         # tracked_correct_states = "\n".join(correct_seq_tracker)
         tracked_incorrect_states = "\n".join(incorrect_seq_tracker)
@@ -479,7 +482,7 @@ class CellCycleStateCalculation:
 
     def generate_graph_score_and_final_states(
         self, graph_info: tuple[list[list], str] = None
-    ) -> tuple[int, int, dict, dict]:
+    ) -> tuple[int, dict, dict]:
         logger.set_ignore_details_flag(flag=not self.__detailed_logs)
 
         if graph_info:
@@ -491,7 +494,7 @@ class CellCycleStateCalculation:
         final_state_count = self.__generate_final_state_counts(final_states)
         graph_score = sum(state_scores.values())
 
-        logger.debug(f"{graph_score=} for graph modification={graph_mod_id}")
+        logger.info(f"{graph_score=} for graph modification={graph_mod_id} and organism={self.__organism}")
 
         if self.__view_final_state_count_table:
             self.print_final_state_count_table(final_state_count)

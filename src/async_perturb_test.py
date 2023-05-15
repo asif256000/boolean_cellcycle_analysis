@@ -21,6 +21,7 @@ def mp_wrapper(state_calc_obj: CellCycleStateCalculation):
 
 
 def score_states_multiprocess(iter_count: int):
+    graph_score_sum = 0
     all_final_state_sum = dict()
     all_state_seq_type = dict()
 
@@ -31,7 +32,8 @@ def score_states_multiprocess(iter_count: int):
             chunksize=NPROC,
         )
 
-    for graph_score, g1_graph_score, final_state_dict, state_seq_type in results:
+    for graph_score, final_state_dict, state_seq_type in results:
+        graph_score_sum += graph_score
         for final_state, state_count in final_state_dict.items():
             if final_state in all_final_state_sum.keys():
                 all_final_state_sum[final_state] += state_count
@@ -42,19 +44,17 @@ def score_states_multiprocess(iter_count: int):
                 all_state_seq_type[start_state] = {"correct": 0, "incorrect": 0, "did_not_start": 0}
             all_state_seq_type[start_state][seq_type] += 1
 
-    return all_final_state_sum, all_state_seq_type
+    return round(graph_score_sum / iter_count, 2), all_final_state_sum, all_state_seq_type
 
 
 def score_states(iter_count: int):
+    graph_score_sum = 0
     all_final_state_sum = dict()
     all_state_seq_type = dict()
 
     for i in range(iter_count):
-        (
-            graph_score,
-            final_state_dict,
-            state_seq_type,
-        ) = cell_state_calc.generate_graph_score_and_final_states()
+        graph_score, final_state_dict, state_seq_type = cell_state_calc.generate_graph_score_and_final_states()
+        graph_score_sum += graph_score
         for final_state, state_count in final_state_dict.items():
             if final_state in all_final_state_sum.keys():
                 all_final_state_sum[final_state] += state_count
@@ -65,7 +65,7 @@ def score_states(iter_count: int):
                 all_state_seq_type[start_state] = {"correct": 0, "incorrect": 0, "did_not_start": 0}
             all_state_seq_type[start_state][seq_type] += 1
 
-    return all_final_state_sum, all_state_seq_type
+    return round(graph_score_sum / iter_count, 2), all_final_state_sum, all_state_seq_type
 
 
 def agg_count_to_csv(final_states: dict, cyclins: list, filename: str):
@@ -114,11 +114,7 @@ def execute_perturb_mp():
 
 
 def single_perturb_details():
-    (
-        graph_score,
-        final_state_dict,
-        state_seq_type,
-    ) = cell_state_calc.generate_graph_score_and_final_states()
+    graph_score, final_state_dict, state_seq_type = cell_state_calc.generate_graph_score_and_final_states()
     graph_image_path = Path("figures", "working_graph.png")
     draw_graph_from_matrix(nodes=cyclins, matrix=working_graph, graph_img_path=graph_image_path)
 
@@ -149,7 +145,7 @@ def single_perturb_details():
 
 if __name__ == "__main__":
     start_time = time()
-    organism = "gb_mammal"
+    organism = "fr_mammal"
 
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, g1_state_one_cyclins, g1_state_zero_cyclins, modified_graph, original_graph
