@@ -494,7 +494,7 @@ class CellCycleStateCalculation:
         final_state_count = self.__generate_final_state_counts(final_states)
         graph_score = sum(state_scores.values())
 
-        logger.info(f"{graph_score=} for graph modification={graph_mod_id} and organism={self.__organism}")
+        logger.debug(f"{graph_score=} for graph modification={graph_mod_id} and organism={self.__organism}")
 
         if self.__view_final_state_count_table:
             self.print_final_state_count_table(final_state_count)

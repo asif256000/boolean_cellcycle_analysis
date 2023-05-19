@@ -8,7 +8,7 @@ import pandas as pd
 from state_calc_clean import CellCycleStateCalculation
 from utils import draw_graph_from_matrix, single_perturbation_generator
 
-NPROC = 6
+NPROC = None
 
 
 def mp_wrapper(state_calc_obj: CellCycleStateCalculation):
@@ -44,7 +44,7 @@ def score_states_multiprocess(iter_count: int):
                 all_state_seq_type[start_state] = {"correct": 0, "incorrect": 0, "did_not_start": 0}
             all_state_seq_type[start_state][seq_type] += 1
 
-    return round(graph_score_sum / iter_count, 2), all_final_state_sum, all_state_seq_type
+    return int(round(graph_score_sum / iter_count, 0)), all_final_state_sum, all_state_seq_type
 
 
 def score_states(iter_count: int):
@@ -65,7 +65,7 @@ def score_states(iter_count: int):
                 all_state_seq_type[start_state] = {"correct": 0, "incorrect": 0, "did_not_start": 0}
             all_state_seq_type[start_state][seq_type] += 1
 
-    return round(graph_score_sum / iter_count, 2), all_final_state_sum, all_state_seq_type
+    return int(round(graph_score_sum / iter_count, 0)), all_final_state_sum, all_state_seq_type
 
 
 def agg_count_to_csv(final_states: dict, cyclins: list, filename: str):
@@ -94,7 +94,7 @@ def state_to_dict(nodes: list, state: str) -> dict:
     return dict(zip(nodes, list(state)))
 
 
-def get_states_with_max_count(nodes: list, states_count: dict) -> dict:
+def get_states_with_max_count(nodes: list, states_count: dict) -> tuple[int, str]:
     max_states = list()
     max_final_state_count = max(states_count.values())
     for state in [k for k, v in states_count.items() if v == max_final_state_count]:
@@ -113,27 +113,32 @@ def execute_perturb_mp():
         )
 
 
-def single_perturb_details():
-    graph_score, final_state_dict, state_seq_type = cell_state_calc.generate_graph_score_and_final_states()
+def single_perturb_details(starting_graph: list, starting_graph_mod_id: str, iter_count: int = 1):
+    cell_state_calc.set_custom_connected_graph(graph=starting_graph, graph_identifier=starting_graph_mod_id)
+    graph_score, final_state_dict, state_seq_type = score_states_multiprocess(iter_count)
     graph_image_path = Path("figures", "working_graph.png")
-    draw_graph_from_matrix(nodes=cyclins, matrix=working_graph, graph_img_path=graph_image_path)
+    draw_graph_from_matrix(nodes=cyclins, matrix=starting_graph, graph_img_path=graph_image_path)
 
     max_count, max_states = get_states_with_max_count(nodes=cyclins, states_count=final_state_dict)
-    perturb_details = [[state_seq_type, len(final_state_dict), max_count, max_states]]
+    perturb_details = [
+        [starting_graph_mod_id, graph_score, len(final_state_dict), int(round(max_count / iter_count, 0)), max_states]
+    ]
+    print(f"For {starting_graph_mod_id=}, {graph_score=}")
 
-    for single_perturb_graph, graph_mod_id in single_perturbation_generator(nodes=cyclins, graph=working_graph):
-        (
-            graph_score,
-            final_state_dict,
-            state_seq_type,
-        ) = cell_state_calc.generate_graph_score_and_final_states(graph_info=(single_perturb_graph, graph_mod_id))
-        max_count, max_states = get_states_with_max_count(nodes=cyclins, states_count=final_state_dict)
-        perturb_details.append([state_seq_type, len(final_state_dict), max_count, max_states])
+    for single_perturb_graph, graph_mod_id in single_perturbation_generator(nodes=cyclins, graph=starting_graph):
+        cell_state_calc.set_custom_connected_graph(graph=single_perturb_graph, graph_identifier=graph_mod_id)
+        avg_graph_score, final_state_sum, state_seq_type = score_states_multiprocess(iter_count)
+        max_count, max_states = get_states_with_max_count(nodes=cyclins, states_count=final_state_sum)
+        perturb_details.append(
+            [graph_mod_id, avg_graph_score, len(final_state_sum), int(round(max_count / iter_count, 0)), max_states]
+        )
+        print(f"For {graph_mod_id=}, {avg_graph_score=}")
 
     perturb_details_df = pd.DataFrame(
-        perturb_details, columns=["Graph Modification ID", "Unique State Count", "Max State Count", "Max State(s)"]
+        perturb_details,
+        columns=["Graph Modification ID", "Graph Score", "Unique Final State Count", "Max State Count", "Max State(s)"],
     )
-    data_path = Path("other_results", f"{organism}_perturb.xlsx")
+    data_path = Path("other_results", f"{organism}_single_perturb.xlsx")
 
     with pd.ExcelWriter(data_path, engine="xlsxwriter") as df_writer:
         perturb_details_df.to_excel(df_writer, sheet_name="Details", index=False)
@@ -145,7 +150,7 @@ def single_perturb_details():
 
 if __name__ == "__main__":
     start_time = time()
-    organism = "fr_mammal"
+    organism = "gb_mammal"
 
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, g1_state_one_cyclins, g1_state_zero_cyclins, modified_graph, original_graph
@@ -175,7 +180,7 @@ if __name__ == "__main__":
     calc_params = {
         "cyclins": cyclins,
         "organism": organism,
-        "detailed_logs": False,
+        "detailed_logs": True,
         "hardcoded_self_loops": True,
         "check_sequence": True,
         "g1_states_only": False,
@@ -201,16 +206,16 @@ if __name__ == "__main__":
         )
         cell_state_calc.set_starting_state(filtered_start_states)
 
-    # single_perturb_details()
-
     it_cnt = 1
-    final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
-    # final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
 
-    state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
-    agg_count_to_csv(
-        final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
-    )
+    # single_perturb_details(working_graph, "OG Graph", it_cnt)
+    avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
+    # avg_score, final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
+
+    # state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
+    # agg_count_to_csv(
+    #     final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
+    # )
 
     end_time = time()
     print(f"Execution completed in {end_time - start_time} seconds for {it_cnt} iterations for {organism} cell cycle.")
