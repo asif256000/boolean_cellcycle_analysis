@@ -115,7 +115,7 @@ def draw_complete_graph(all_graph_edges: list, fig_size: tuple = (50, 50), graph
     plt.figure(figsize=fig_size)
     G.add_edges_from(list(set(all_graph_edges)))
     # pos = nx.drawing.layout.circular_layout(G)
-    nx.draw(
+    nx.draw_networkx(
         G,
         with_labels=True,
         node_shape="o",
@@ -155,7 +155,7 @@ def draw_graph_from_matrix(nodes: list, matrix: list[list], graph_img_path: Path
     width_list = list(nx.get_edge_attributes(G, "width").values())
     # pos = nx.drawing.layout.circular_layout(G)
     pos = nx.drawing.layout.shell_layout(G)
-    nx.draw(
+    nx.draw_networkx(
         G,
         pos=pos,
         with_labels=True,
