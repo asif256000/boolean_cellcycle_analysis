@@ -167,3 +167,15 @@ Option 1 is selected after discussion.
 1. Async update for yeast cell cycle model.
 2. Final state count table and 5000 iteration avg table should be presented.
 3. Finally have 4 models: Yeast, GB, Tyson1, Tyson2 (with P21 self loop) - find metrics for all models.
+
+## Iteration 22
+
+1. Add penalty for not starting cell cycle
+2. Start adding figures and tables for Yeast Cell Model
+
+## Iteration 23
+
+1. Multiple final expected state(s)
+2. Count avg state seq for perturbations for G1 start states
+3. Add self-loops to perturbations
+4. Yeast Plots for sync and async executions

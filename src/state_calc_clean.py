@@ -99,7 +99,7 @@ class CellCycleStateCalculation:
             f"Class CellCycleStateCalculation. Organism: {self.__organism} "
             f"Cyclins: {self.__all_cyclins}, "
             f"Optimal Graph Score: {self.__optimal_graph_score}, "
-            f"Expected Final State: {''.join(map(str, self.__expected_final_state))}"
+            f"Expected Final State: {dict(zip(self.__all_cyclins, self.__expected_final_state))}"
         )
 
     def __get_all_possible_starting_states(self) -> list[list]:
@@ -194,7 +194,8 @@ class CellCycleStateCalculation:
     def __calculate_state_scores(self, final_state: list) -> int:
         score = 0
         for ix, exp_state in enumerate(self.__expected_final_state):
-            score += abs(final_state[ix] - exp_state)
+            if isinstance(exp_state, int):
+                score += abs(final_state[ix] - exp_state)
         return score
 
     @staticmethod
@@ -414,7 +415,9 @@ class CellCycleStateCalculation:
                 state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
                     all_cyclin_states[-2]
                 )
-                logger.debug(f"Cycle found for start state: {str(dict(zip(self.__all_cyclins, start_state)))}")
+                logger.debug(
+                    f"Cycle found for start state: {str(dict(zip(self.__all_cyclins, start_state)))}", detail=True
+                )
             elif not self.__exp_cycle_detection and self.__lazy_detect_cycles(all_cyclin_states):
                 final_states.append("C" * len(self.__all_cyclins))
                 state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
@@ -434,6 +437,9 @@ class CellCycleStateCalculation:
                 if not cell_div_start_flag:
                     not_started_seq_tracker.append(curr_start_state_str)
                     state_seq_type["".join(map(str, start_state))] = "did_not_start"
+                    if start_state in self.__g1_start_states:
+                        state_score += 100
+                        state_scores_dict["".join(map(str, start_state))] = state_score
                     continue
                 if self.verify_sequence(all_cyclin_states):
                     correct_seq_tracker.append(curr_start_state_str)
@@ -447,7 +453,7 @@ class CellCycleStateCalculation:
                         state_scores_dict["".join(map(str, start_state))] = state_score
 
         # tracked_correct_states = "\n".join(correct_seq_tracker)
-        tracked_incorrect_states = "\n".join(incorrect_seq_tracker)
+        # tracked_incorrect_states = "\n".join(incorrect_seq_tracker)
         # non_started_states = "\n".join(not_started_seq_tracker)
         logs = [
             f"\nA total {len(correct_seq_tracker)} starting states out of {len(all_start_states)} went through correct sequence.",
@@ -455,7 +461,7 @@ class CellCycleStateCalculation:
             f"A total {len(not_started_seq_tracker)} starting states out of {len(all_start_states)} did start cell cycle",
             f"i.e it did not turn or started with {self.__cell_cycle_activation_cyclin} as 1 in the cell cycle.",
             # f"The states that followed correct order are:\n{tracked_correct_states}",
-            f"The states that did not follow correct order are:\n{tracked_incorrect_states}",
+            # f"The states that did not follow correct order are:\n{tracked_incorrect_states}",
             # f"The states that did not start cell cycle are:\n{non_started_states}",
         ]
         logger.debug("\n".join(logs), detail=True)

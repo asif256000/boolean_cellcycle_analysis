@@ -133,8 +133,8 @@ def single_graph_execution(current_graph: list, graph_mod: str, iterations: int)
     return graph_mod, avg_graph_score, len(final_state_sum), int(round(max_count / iterations, 0)), max_states
 
 
-def single_perturb_details(starting_graph: list, starting_graph_mod_id: str, iter_count: int = 1):
-    graph_image_path = Path("figures", "working_graph.png")
+def single_perturb_details(organ: str, starting_graph: list, starting_graph_mod_id: str, iter_count: int = 1):
+    graph_image_path = Path("figures", f"working_graph_{organ}_{int(time())}.png")
     draw_graph_from_matrix(nodes=cyclins, matrix=starting_graph, graph_img_path=graph_image_path)
 
     perturb_details = list()
@@ -149,13 +149,13 @@ def single_perturb_details(starting_graph: list, starting_graph_mod_id: str, ite
         )
         perturb_details.append([graph_mod, avg_score, unique_final_states, max_state_avg, max_state])
 
-    data_path = Path("other_results", f"{organism}_single_perturb_it{iter_count}.xlsx")
+    data_path = Path("other_results", "perturbs", f"{organ}_single_perturb_it{iter_count}.xlsx")
     data_cols = ["Graph Modification ID", "Graph Score", "Unique Final State Count", "Max State Count", "Max State(s)"]
     write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
 
 
-def double_perturb_details(starting_graph: list, starting_graph_mod_id: str, iter_count: int = 1):
-    graph_image_path = Path("figures", "working_graph.png")
+def double_perturb_details(organ, starting_graph: list, starting_graph_mod_id: str, iter_count: int = 1):
+    graph_image_path = Path("figures", f"working_graph_{organ}_{int(time())}.png")
     draw_graph_from_matrix(nodes=cyclins, matrix=starting_graph, graph_img_path=graph_image_path)
 
     perturb_details = list()
@@ -170,7 +170,7 @@ def double_perturb_details(starting_graph: list, starting_graph_mod_id: str, ite
         )
         perturb_details.append([graph_mod, avg_score, unique_final_states, max_state_avg, max_state])
 
-    data_path = Path("other_results", f"{organism}_double_perturb_it{iter_count}.xlsx")
+    data_path = Path("other_results", "perturbs", f"{organ}_double_perturb_it{iter_count}.xlsx")
     data_cols = ["Graph Modification ID", "Graph Score", "Unique Final State Count", "Max State Count", "Max State(s)"]
     write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
 
@@ -207,13 +207,13 @@ if __name__ == "__main__":
     calc_params = {
         "cyclins": cyclins,
         "organism": organism,
-        "detailed_logs": True,
+        "detailed_logs": False,
         "hardcoded_self_loops": True,
         "check_sequence": True,
         "g1_states_only": False,
-        "view_state_table": True,
+        "view_state_table": False,
         "view_state_changes_only": True,
-        "view_final_state_count_table": True,
+        "view_final_state_count_table": False,
         "async_update": True,
         "random_order_cyclin": True,
         "complete_cycle": False,
@@ -233,10 +233,11 @@ if __name__ == "__main__":
         )
         cell_state_calc.set_starting_state(filtered_start_states)
 
-    it_cnt = 10
+    it_cnt = 8
 
-    double_perturb_details(working_graph, "OG Graph", it_cnt)
-    # single_perturb_details(working_graph, "OG Graph", it_cnt)
+    print(f"Initializing execution for {organism=}, with {filter_states=} and {it_cnt} iterations...")
+    # double_perturb_details(organism, working_graph, "OG Graph", it_cnt)
+    single_perturb_details(organism, working_graph, "OG Graph", it_cnt)
 
     # avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
     # avg_score, final_states_sum, state_seq_count = score_states(iter_count=it_cnt)

@@ -3,7 +3,7 @@ cyclins = ["CycD", "CycE", "CycA", "CycB", "E2F", "Skp2", "Cdh1", "Cdc25", "RB",
 g1_state_zero_cyclins = ["CycE", "CycA", "CycB", "E2F", "Cdc20"]
 g1_state_one_cyclins = ["CycD", "RB", "Wee1"]
 
-expected_final_state = [0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0]
+expected_final_state = [0, 0, 0, 0, 0, 0, 1, 0, 1, "-", 0, 1, 0]
 
 expected_cyclin_order = [
     {"E2F": 1, "CycE": 0, "CycA": 0, "CycB": 0, "Cdc20": 0},
