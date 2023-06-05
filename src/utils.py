@@ -27,14 +27,15 @@ def all_perturbation_recursive_generator(graph: list[list], start_pos: int = 0):
             raise StopIteration
 
 
-def all_perturbation_generator(nodes: list, graph: list[list]):
+def all_perturbation_generator(nodes: list, graph: list[list], perturb_self_loops: bool = False):
     possible_weights = {-1, 0, 1}
     node_len = len(graph)
     for i in range(node_len**2):
         ix_x1 = i // node_len
         ix_y1 = i % node_len
-        if ix_x1 == ix_y1:
-            continue
+        if not perturb_self_loops:
+            if ix_x1 == ix_y1:
+                continue
         for possible_perturbs1 in possible_weights - {graph[ix_x1][ix_y1]}:
             cc1_graph = deepcopy(graph)
             cc1_graph[ix_x1][ix_y1] = possible_perturbs1
@@ -44,8 +45,9 @@ def all_perturbation_generator(nodes: list, graph: list[list]):
                 ]
                 ix_x2 = j // node_len
                 ix_y2 = j % node_len
-                if ix_x2 == ix_y2:
-                    continue
+                if not perturb_self_loops:
+                    if ix_x2 == ix_y2:
+                        continue
                 for possible_perturbs2 in possible_weights - {cc1_graph[ix_x2][ix_y2]}:
                     perturb_tracker_list.append(
                         f"{nodes[ix_y2]}-to-{nodes[ix_x2]} -> {graph[ix_x2][ix_y2]}to{possible_perturbs2}"
@@ -56,14 +58,15 @@ def all_perturbation_generator(nodes: list, graph: list[list]):
                     perturb_tracker_list.pop()
 
 
-def single_perturbation_generator(nodes: list, graph: list[list]):
+def single_perturbation_generator(nodes: list, graph: list[list], perturb_self_loops: bool = False):
     possible_weights = {-1, 0, 1}
     node_len = len(graph)
     for i in range(node_len**2):
         ix_x = i // node_len
         ix_y = i % node_len
-        if ix_x == ix_y:
-            continue
+        if not perturb_self_loops:
+            if ix_x == ix_y:
+                continue
         for possible_perturbs in possible_weights - {graph[ix_x][ix_y]}:
             cc_graph = deepcopy(graph)
             cc_graph[ix_x][ix_y] = possible_perturbs

@@ -176,6 +176,6 @@ Option 1 is selected after discussion.
 ## Iteration 23
 
 1. Multiple final expected state(s)
-2. Count avg state seq for perturbations for G1 start states
-3. Add self-loops to perturbations
+2. Add self-loops to perturbations
+3. Count avg state seq for perturbations for G1 start states
 4. Yeast Plots for sync and async executions

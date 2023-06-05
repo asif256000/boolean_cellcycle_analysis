@@ -95,7 +95,10 @@ def execute_perturb_mp():
         results = mp_pool.map(
             func=mp_wrapper,
             iterable=[
-                cell_state_calc for _ in range(single_perturbation_generator(nodes=cyclins, graph=working_graph))
+                cell_state_calc
+                for _ in range(
+                    single_perturbation_generator(nodes=cyclins, graph=working_graph, perturb_self_loops=True)
+                )
             ],
             chunksize=NPROC,
         )
@@ -143,7 +146,9 @@ def single_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
     )
     perturb_details.append([graph_mod, avg_score, unique_final_states, max_state_avg, max_state])
 
-    for single_perturb_graph, graph_mod_id in single_perturbation_generator(nodes=cyclins, graph=starting_graph):
+    for single_perturb_graph, graph_mod_id in single_perturbation_generator(
+        nodes=cyclins, graph=starting_graph, perturb_self_loops=True
+    ):
         graph_mod, avg_score, unique_final_states, max_state_avg, max_state = single_graph_execution(
             current_graph=single_perturb_graph, graph_mod=graph_mod_id, iterations=iter_count
         )
@@ -164,7 +169,9 @@ def double_perturb_details(organ, starting_graph: list, starting_graph_mod_id: s
     )
     perturb_details.append([graph_mod, avg_score, unique_final_states, max_state_avg, max_state])
 
-    for double_perturb_graph, graph_mod_id in all_perturbation_generator(nodes=cyclins, graph=starting_graph):
+    for double_perturb_graph, graph_mod_id in all_perturbation_generator(
+        nodes=cyclins, graph=starting_graph, perturb_self_loops=True
+    ):
         graph_mod, avg_score, unique_final_states, max_state_avg, max_state = single_graph_execution(
             current_graph=double_perturb_graph, graph_mod=graph_mod_id, iterations=iter_count
         )
@@ -177,7 +184,7 @@ def double_perturb_details(organ, starting_graph: list, starting_graph_mod_id: s
 
 if __name__ == "__main__":
     start_time = time()
-    organism = "fr_mammal"
+    organism = "yeast"
 
     if organism.lower() == "yeast":
         from yeast_inputs import cyclins, g1_state_one_cyclins, g1_state_zero_cyclins, modified_graph, original_graph
