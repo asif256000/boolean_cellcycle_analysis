@@ -5,6 +5,8 @@ from pathlib import Path
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
+import pandas as pd
 import seaborn as sns
 
 from input_testing import cyclins, modified_graph, original_graph
@@ -73,23 +75,29 @@ def single_perturbation_generator(nodes: list, graph: list[list], perturb_self_l
             yield cc_graph, f"{nodes[ix_y]}-to-{nodes[ix_x]} -> {graph[ix_x][ix_y]}to{possible_perturbs}"
 
 
-def generate_histogram(freq_list: list, img_filename: str, plot_title: str):
+def generate_histogram(freq_list: list, img_filename: str, plot_title: str, vertical_line_at: int = None):
     sns.set_style(style="darkgrid")
-    sns.histplot(freq_list, bins=75)
+    sns.histplot(freq_list, bins=100)
     plt.title(plot_title, fontsize=16)
     plt.ylabel("Frequency")
+    if vertical_line_at:
+        plt.axvline(vertical_line_at, color="red", linestyle="--")
     plt.savefig(img_filename, bbox_inches="tight")
     plt.close()
 
 
-def generate_categorical_hist(freq_dict: dict[str, int], img_filename: str, plot_title: str):
+def generate_categorical_hist(
+    freq_dict: dict[str, int], img_filename: str, plot_title: str, vertical_line_at: int = None
+):
     sns.set_style(style="darkgrid")
     wid = len(freq_dict) // 5
     plt.figure(figsize=(wid, 10))
     sns.barplot(x=list(freq_dict.keys()), y=list(freq_dict.values()))
     plt.title(plot_title)
-    plt.ylabel("Frequency")
+    plt.ylabel("Score")
     plt.xticks(rotation=90)
+    if vertical_line_at:
+        plt.axvline(x=vertical_line_at, color="red", linestyle="--")
     plt.savefig(img_filename, bbox_inches="tight")
     plt.close()
 
@@ -176,21 +184,45 @@ def draw_graph_from_matrix(nodes: list, matrix: list[list], graph_img_path: Path
 
 
 if __name__ == "__main__":
-    nodes = ["Cln3", "MBF", "SBF", "Cln1,2", "Cdh1"]
-    edges = [
-        [0, -1, 1, -1, 0],
-        [1, 0, 1, 0, 0],
-        [0, -1, 1, 0, 0],
-        [1, 0, 1, 0, -1],
-        [1, -1, 0, 0, 0],
-    ]
+    # For Score Data
+    data = pd.read_excel(
+        "/Users/asifiqbal/code_projects/DNABool/other_results/perturbs/yeast_single_perturb_it512.xlsx",
+        sheet_name="Details",
+    )
+    scores = data["Graph Score"]
+    threshold = 40000
+    mod_data = np.where(scores > threshold, threshold + 1, scores)
+    original_graph_score = data[data["Graph Modification ID"] == "OG Graph"]["Graph Score"].values[0]
+    generate_histogram(
+        freq_list=mod_data,
+        img_filename="test_image_hist.png",
+        plot_title="Yeast Single Perturbation Score 512 Iterations",
+        vertical_line_at=original_graph_score,
+    )
+    # For Perturbation Data
+    perturb_data = data.set_index("Graph Modification ID")["Graph Score"].to_dict()
+    generate_categorical_hist(
+        freq_dict=perturb_data,
+        img_filename="test_image_freq_hist.png",
+        plot_title="Single Perturbation Scores",
+        vertical_line_at=list(perturb_data.keys()).index("OG Graph"),
+    )
+
+    # nodes = ["Cln3", "MBF", "SBF", "Cln1,2", "Cdh1"]
+    # edges = [
+    #     [0, -1, 1, -1, 0],
+    #     [1, 0, 1, 0, 0],
+    #     [0, -1, 1, 0, 0],
+    #     [1, 0, 1, 0, -1],
+    #     [1, -1, 0, 0, 0],
+    # ]
     # i = 0
     # for pert_graph, graph_mod in single_perturbation_generator(nodes=nodes, graph=edges):
     #     print(f"{pert_graph=}, {graph_mod=}")
     #     i += 1
     # print(i)
-    draw_graph_from_matrix(cyclins, original_graph, graph_img_path=Path("figures", "original_graph.png"))
-    draw_graph_from_matrix(cyclins, modified_graph, graph_img_path=Path("figures", "modified_graph.png"))
+    # draw_graph_from_matrix(cyclins, original_graph, graph_img_path=Path("figures", "original_graph.png"))
+    # draw_graph_from_matrix(cyclins, modified_graph, graph_img_path=Path("figures", "modified_graph.png"))
     # for mod_graph, pert_id in all_perturbation_generator(nodes=nodes, graph=edges):
     #     print(f"{pert_id=}")
     #     for m in mod_graph:

@@ -127,13 +127,25 @@ def write_perturb_data(perurbation_data: list, df_cols: list, graph_img_path: Pa
     os.remove(graph_img_path)
 
 
+def avg_seq_types(seq_types: dict, iterations: int):
+    avg_seq_types = {"correct": 0, "incorrect": 0, "did_not_start": 0}
+    state_count = len(seq_types)
+
+    for state, state_seq in seq_types.items():
+        for seq, count in state_seq.items():
+            avg_seq_types[seq] += count
+
+    return {k: v / state_count for k, v in avg_seq_types.items()}
+
+
 def single_graph_execution(current_graph: list, graph_mod: str, iterations: int):
     cell_state_calc.set_custom_connected_graph(graph=current_graph, graph_identifier=graph_mod)
     avg_graph_score, final_state_sum, state_seq_type = score_states_multiprocess(iterations)
+    avg_seq = avg_seq_types(state_seq_type, iterations)
     max_count, max_states = get_states_with_max_count(nodes=cyclins, states_count=final_state_sum)
     print(f"For {graph_mod=}, {avg_graph_score=}")
 
-    return graph_mod, avg_graph_score, len(final_state_sum), int(round(max_count / iterations, 0)), max_states
+    return graph_mod, avg_graph_score, len(final_state_sum), int(round(max_count / iterations, 0)), max_states, avg_seq
 
 
 def single_perturb_details(organ: str, starting_graph: list, starting_graph_mod_id: str, iter_count: int = 1):
@@ -141,21 +153,52 @@ def single_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
     draw_graph_from_matrix(nodes=cyclins, matrix=starting_graph, graph_img_path=graph_image_path)
 
     perturb_details = list()
-    graph_mod, avg_score, unique_final_states, max_state_avg, max_state = single_graph_execution(
+    graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
         current_graph=starting_graph, graph_mod=starting_graph_mod_id, iterations=iter_count
     )
-    perturb_details.append([graph_mod, avg_score, unique_final_states, max_state_avg, max_state])
+    perturb_details.append(
+        [
+            graph_mod,
+            avg_score,
+            unique_final_states,
+            max_state_avg,
+            max_state,
+            avg_seq["correct"],
+            avg_seq["incorrect"],
+            avg_seq["did_not_start"],
+        ]
+    )
 
     for single_perturb_graph, graph_mod_id in single_perturbation_generator(
         nodes=cyclins, graph=starting_graph, perturb_self_loops=True
     ):
-        graph_mod, avg_score, unique_final_states, max_state_avg, max_state = single_graph_execution(
+        graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
             current_graph=single_perturb_graph, graph_mod=graph_mod_id, iterations=iter_count
         )
-        perturb_details.append([graph_mod, avg_score, unique_final_states, max_state_avg, max_state])
+        perturb_details.append(
+            [
+                graph_mod,
+                avg_score,
+                unique_final_states,
+                max_state_avg,
+                max_state,
+                avg_seq["correct"],
+                avg_seq["incorrect"],
+                avg_seq["did_not_start"],
+            ]
+        )
 
     data_path = Path("other_results", "perturbs", f"{organ}_single_perturb_it{iter_count}.xlsx")
-    data_cols = ["Graph Modification ID", "Graph Score", "Unique Final State Count", "Max State Count", "Max State(s)"]
+    data_cols = [
+        "Graph Modification ID",
+        "Graph Score",
+        "Unique Final State Count",
+        "Max State Count",
+        "Max State(s)",
+        "Correct",
+        "Incorrect",
+        "Did not Start",
+    ]
     write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
 
 
@@ -164,21 +207,52 @@ def double_perturb_details(organ, starting_graph: list, starting_graph_mod_id: s
     draw_graph_from_matrix(nodes=cyclins, matrix=starting_graph, graph_img_path=graph_image_path)
 
     perturb_details = list()
-    graph_mod, avg_score, unique_final_states, max_state_avg, max_state = single_graph_execution(
+    graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
         current_graph=starting_graph, graph_mod=starting_graph_mod_id, iterations=iter_count
     )
-    perturb_details.append([graph_mod, avg_score, unique_final_states, max_state_avg, max_state])
+    perturb_details.append(
+        [
+            graph_mod,
+            avg_score,
+            unique_final_states,
+            max_state_avg,
+            max_state,
+            avg_seq["correct"],
+            avg_seq["incorrect"],
+            avg_seq["did_not_start"],
+        ]
+    )
 
     for double_perturb_graph, graph_mod_id in all_perturbation_generator(
         nodes=cyclins, graph=starting_graph, perturb_self_loops=True
     ):
-        graph_mod, avg_score, unique_final_states, max_state_avg, max_state = single_graph_execution(
+        graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
             current_graph=double_perturb_graph, graph_mod=graph_mod_id, iterations=iter_count
         )
-        perturb_details.append([graph_mod, avg_score, unique_final_states, max_state_avg, max_state])
+        perturb_details.append(
+            [
+                graph_mod,
+                avg_score,
+                unique_final_states,
+                max_state_avg,
+                max_state,
+                avg_seq["correct"],
+                avg_seq["incorrect"],
+                avg_seq["did_not_start"],
+            ]
+        )
 
     data_path = Path("other_results", "perturbs", f"{organ}_double_perturb_it{iter_count}.xlsx")
-    data_cols = ["Graph Modification ID", "Graph Score", "Unique Final State Count", "Max State Count", "Max State(s)"]
+    data_cols = [
+        "Graph Modification ID",
+        "Graph Score",
+        "Unique Final State Count",
+        "Max State Count",
+        "Max State(s)",
+        "Correct",
+        "Incorrect",
+        "Did not Start",
+    ]
     write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
 
 
@@ -214,13 +288,13 @@ if __name__ == "__main__":
     calc_params = {
         "cyclins": cyclins,
         "organism": organism,
-        "detailed_logs": False,
+        "detailed_logs": True,
         "hardcoded_self_loops": True,
         "check_sequence": True,
         "g1_states_only": False,
-        "view_state_table": False,
+        "view_state_table": True,
         "view_state_changes_only": True,
-        "view_final_state_count_table": False,
+        "view_final_state_count_table": True,
         "async_update": True,
         "random_order_cyclin": True,
         "complete_cycle": False,
@@ -240,13 +314,13 @@ if __name__ == "__main__":
         )
         cell_state_calc.set_starting_state(filtered_start_states)
 
-    it_cnt = 8
+    it_cnt = 1
 
     print(f"Initializing execution for {organism=}, with {filter_states=} and {it_cnt} iterations...")
     # double_perturb_details(organism, working_graph, "OG Graph", it_cnt)
-    single_perturb_details(organism, working_graph, "OG Graph", it_cnt)
+    # single_perturb_details(organism, working_graph, "OG Graph", it_cnt)
 
-    # avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
+    avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
     # avg_score, final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
 
     # state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")

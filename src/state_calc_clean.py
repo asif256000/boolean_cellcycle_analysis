@@ -433,7 +433,7 @@ class CellCycleStateCalculation:
                 self.print_state_table(all_cyclin_states, update_sequence)
 
             curr_start_state_str = self.state_as_str(start_state)
-            if self.__check_sequence:
+            if self.__check_sequence and start_state in self.__g1_start_states:
                 if not cell_div_start_flag:
                     not_started_seq_tracker.append(curr_start_state_str)
                     state_seq_type["".join(map(str, start_state))] = "did_not_start"
