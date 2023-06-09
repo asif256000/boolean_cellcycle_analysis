@@ -179,3 +179,11 @@ Option 1 is selected after discussion.
 2. Add self-loops to perturbations
 3. Count avg state seq for perturbations for G1 start states
 4. Yeast Plots for sync and async executions
+
+## Iteration 24
+
+1. Mention sequence required for correct, incorrect, did not start in slide and give corresponding examples
+2. Method section in word -> most important
+3. Double perturbation on GB and TN
+4. Generate similar graphs and charts for mammals
+5. Put important, better and sensible perturbations on the ppt

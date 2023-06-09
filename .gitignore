@@ -171,3 +171,4 @@ results/*
 figures/*
 !figures/all_perturbations
 *.pptx
+*.docx
