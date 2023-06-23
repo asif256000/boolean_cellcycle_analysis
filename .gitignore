@@ -172,3 +172,4 @@ figures/*
 !figures/all_perturbations
 *.pptx
 *.docx
+src/test.py
