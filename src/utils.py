@@ -76,10 +76,13 @@ def single_perturbation_generator(nodes: list, graph: list[list], perturb_self_l
 
 
 def generate_histogram(freq_list: list, img_filename: str, plot_title: str, vertical_line_at: int = None):
-    sns.set_style(style="darkgrid")
-    sns.histplot(freq_list, bins=100)
-    plt.title(plot_title, fontsize=16)
-    plt.ylabel("Frequency")
+    sns.set_style(style="white")
+    plt.figure(figsize=(80, 40))
+    ax = sns.histplot(freq_list, bins=100, color="black")
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    plt.title("", fontsize=16)
+    plt.ylabel("")
     if vertical_line_at:
         plt.axvline(vertical_line_at, color="red", linestyle="--")
     plt.savefig(img_filename, bbox_inches="tight")
@@ -89,7 +92,7 @@ def generate_histogram(freq_list: list, img_filename: str, plot_title: str, vert
 def generate_categorical_hist(
     freq_dict: dict[str, int], img_filename: str, plot_title: str, vertical_line_at: int = None
 ):
-    sns.set_style(style="darkgrid")
+    # sns.set_style(style="darkgrid")
     wid = len(freq_dict) // 5
     plt.figure(figsize=(wid, 10))
     sns.barplot(x=list(freq_dict.keys()), y=list(freq_dict.values()))
@@ -195,18 +198,18 @@ if __name__ == "__main__":
     original_graph_score = data[data["Graph Modification ID"] == "OG Graph"]["Graph Score"].values[0]
     generate_histogram(
         freq_list=mod_data,
-        img_filename="test_image_hist.png",
-        plot_title="Yeast Single Perturbation Score 512 Iterations",
+        img_filename="Yeast_noticks.png",
+        plot_title="Yeast Single Perturbation Score Distribution (512 iterations)",
         vertical_line_at=original_graph_score,
     )
     # For Perturbation Data
-    perturb_data = data.set_index("Graph Modification ID")["Graph Score"].to_dict()
-    generate_categorical_hist(
-        freq_dict=perturb_data,
-        img_filename="test_image_freq_hist.png",
-        plot_title="Single Perturbation Scores",
-        vertical_line_at=list(perturb_data.keys()).index("OG Graph"),
-    )
+    # perturb_data = data.set_index("Graph Modification ID")["Graph Score"].to_dict()
+    # generate_categorical_hist(
+    #     freq_dict=perturb_data,
+    #     img_filename="test_image_freq_hist.png",
+    #     plot_title="Single Perturbation Sync Scores",
+    #     vertical_line_at=list(perturb_data.keys()).index("OG Graph"),
+    # )
 
     # nodes = ["Cln3", "MBF", "SBF", "Cln1,2", "Cdh1"]
     # edges = [

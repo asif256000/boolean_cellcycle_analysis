@@ -11,6 +11,13 @@ from utils import all_perturbation_generator, draw_graph_from_matrix, single_per
 NPROC = None
 
 
+def perturbation_mp_wrapper(args: set):
+    graph_mod, avg_score, unique_final_states, max_state_avg_count, max_state, avg_seq = single_graph_execution(
+        current_graph=args[0], graph_mod=args[1], iterations=args[2]
+    )
+    return graph_mod, avg_score, unique_final_states, max_state_avg_count, max_state, avg_seq
+
+
 def mp_wrapper(state_calc_obj: CellCycleStateCalculation):
     (
         graph_score,
@@ -29,7 +36,7 @@ def score_states_multiprocess(iter_count: int):
         results = mp_pool.map(
             func=mp_wrapper,
             iterable=[cell_state_calc for _ in range(iter_count)],
-            chunksize=NPROC,
+            # chunksize=NPROC,
         )
 
     for graph_score, final_state_dict, state_seq_type in results:
@@ -100,7 +107,7 @@ def execute_perturb_mp():
                     single_perturbation_generator(nodes=cyclins, graph=working_graph, perturb_self_loops=True)
                 )
             ],
-            chunksize=NPROC,
+            # chunksize=NPROC,
         )
 
 
@@ -129,13 +136,12 @@ def write_perturb_data(perurbation_data: list, df_cols: list, graph_img_path: Pa
 
 def avg_seq_types(seq_types: dict, iterations: int):
     avg_seq_types = {"correct": 0, "incorrect": 0, "did_not_start": 0}
-    state_count = len(seq_types)
 
-    for state, state_seq in seq_types.items():
+    for _, state_seq in seq_types.items():
         for seq, count in state_seq.items():
             avg_seq_types[seq] += count
 
-    return {k: v / state_count for k, v in avg_seq_types.items()}
+    return {k: v / iterations for k, v in avg_seq_types.items()}
 
 
 def single_graph_execution(current_graph: list, graph_mod: str, iterations: int):
@@ -202,7 +208,7 @@ def single_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
     write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
 
 
-def double_perturb_details(organ, starting_graph: list, starting_graph_mod_id: str, iter_count: int = 1):
+def double_perturb_details(organ: str, starting_graph: list, starting_graph_mod_id: str, iter_count: int = 1):
     graph_image_path = Path("figures", f"working_graph_{organ}_{int(time())}.png")
     draw_graph_from_matrix(nodes=cyclins, matrix=starting_graph, graph_img_path=graph_image_path)
 
@@ -223,12 +229,15 @@ def double_perturb_details(organ, starting_graph: list, starting_graph_mod_id: s
         ]
     )
 
-    for double_perturb_graph, graph_mod_id in all_perturbation_generator(
-        nodes=cyclins, graph=starting_graph, perturb_self_loops=True
-    ):
-        graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
-            current_graph=double_perturb_graph, graph_mod=graph_mod_id, iterations=iter_count
+    mp_args = [
+        (double_perturb_graph, graph_mod_id, iter_count)
+        for double_perturb_graph, graph_mod_id in all_perturbation_generator(
+            nodes=cyclins, graph=starting_graph, perturb_self_loops=True
         )
+    ]
+    with mp.Pool(processes=NPROC) as mp_pool:
+        results = mp_pool.map(func=perturbation_mp_wrapper, iterable=mp_args)
+    for graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq in results:
         perturb_details.append(
             [
                 graph_mod,
@@ -288,13 +297,13 @@ if __name__ == "__main__":
     calc_params = {
         "cyclins": cyclins,
         "organism": organism,
-        "detailed_logs": True,
+        "detailed_logs": False,
         "hardcoded_self_loops": True,
         "check_sequence": True,
         "g1_states_only": False,
-        "view_state_table": True,
+        "view_state_table": False,
         "view_state_changes_only": True,
-        "view_final_state_count_table": True,
+        "view_final_state_count_table": False,
         "async_update": True,
         "random_order_cyclin": True,
         "complete_cycle": False,
@@ -314,13 +323,13 @@ if __name__ == "__main__":
         )
         cell_state_calc.set_starting_state(filtered_start_states)
 
-    it_cnt = 1
+    it_cnt = 12
 
     print(f"Initializing execution for {organism=}, with {filter_states=} and {it_cnt} iterations...")
-    # double_perturb_details(organism, working_graph, "OG Graph", it_cnt)
+    double_perturb_details(organism, working_graph, "OG Graph", it_cnt)
     # single_perturb_details(organism, working_graph, "OG Graph", it_cnt)
 
-    avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
+    # avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
     # avg_score, final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
 
     # state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
