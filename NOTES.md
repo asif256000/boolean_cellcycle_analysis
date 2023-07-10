@@ -187,3 +187,9 @@ Option 1 is selected after discussion.
 3. Double perturbation on GB and TN
 4. Generate similar graphs and charts for mammals
 5. Put important, better and sensible perturbations on the ppt
+
+## TODO
+
+1. Add point-of-no-return score penalty in methods.docs
+2. Perturbation figure rotation and color consistent
+3. Put data instead of histograms in the shared drive so that graph can be generated.

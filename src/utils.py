@@ -32,12 +32,11 @@ def all_perturbation_recursive_generator(graph: list[list], start_pos: int = 0):
 def all_perturbation_generator(nodes: list, graph: list[list], perturb_self_loops: bool = False):
     possible_weights = {-1, 0, 1}
     node_len = len(graph)
-    for i in range(node_len**2):
+    for i in range(node_len**2 + 1):
         ix_x1 = i // node_len
         ix_y1 = i % node_len
-        if not perturb_self_loops:
-            if ix_x1 == ix_y1:
-                continue
+        if not perturb_self_loops and ix_x1 == ix_y1:
+            continue
         for possible_perturbs1 in possible_weights - {graph[ix_x1][ix_y1]}:
             cc1_graph = deepcopy(graph)
             cc1_graph[ix_x1][ix_y1] = possible_perturbs1
@@ -47,9 +46,8 @@ def all_perturbation_generator(nodes: list, graph: list[list], perturb_self_loop
                 ]
                 ix_x2 = j // node_len
                 ix_y2 = j % node_len
-                if not perturb_self_loops:
-                    if ix_x2 == ix_y2:
-                        continue
+                if not perturb_self_loops and ix_x2 == ix_y2:
+                    continue
                 for possible_perturbs2 in possible_weights - {cc1_graph[ix_x2][ix_y2]}:
                     perturb_tracker_list.append(
                         f"{nodes[ix_y2]}-to-{nodes[ix_x2]} -> {graph[ix_x2][ix_y2]}to{possible_perturbs2}"
@@ -92,13 +90,14 @@ def generate_histogram(freq_list: list, img_filename: str, plot_title: str, vert
 def generate_categorical_hist(
     freq_dict: dict[str, int], img_filename: str, plot_title: str, vertical_line_at: int = None
 ):
-    # sns.set_style(style="darkgrid")
-    wid = len(freq_dict) // 5
-    plt.figure(figsize=(wid, 10))
+    sns.set_style(style="white")
+    wid = len(freq_dict) // 2.5
+    plt.figure(figsize=(wid, 20))
     sns.barplot(x=list(freq_dict.keys()), y=list(freq_dict.values()))
-    plt.title(plot_title)
-    plt.ylabel("Score")
+    # plt.title(plot_title)
+    # plt.ylabel("Score")
     plt.xticks(rotation=90)
+    plt.yticks(rotation=90)
     if vertical_line_at:
         plt.axvline(x=vertical_line_at, color="red", linestyle="--")
     plt.savefig(img_filename, bbox_inches="tight")
@@ -186,30 +185,54 @@ def draw_graph_from_matrix(nodes: list, matrix: list[list], graph_img_path: Path
     plt.close()
 
 
+def flatten_double_perturb_freq(scores: dict[str, int]):
+    total_scores = dict()
+    counts = dict()
+
+    for pert, score in scores.items():
+        perturbations = pert.split(" | ")
+        for perturb in perturbations:
+            if perturb in total_scores.keys():
+                total_scores[perturb] += score
+            else:
+                total_scores[perturb] = score
+            if perturb in counts.keys():
+                counts[perturb] += 1
+            else:
+                counts[perturb] = 1
+
+    # print(f"{counts=}")
+    return {pert: total_scores[pert] / counts[pert] for pert in total_scores.keys()}
+
+
 if __name__ == "__main__":
-    # For Score Data
     data = pd.read_excel(
-        "/Users/asifiqbal/code_projects/DNABool/other_results/perturbs/yeast_single_perturb_it512.xlsx",
+        "/Users/asifiqbal/code_projects/DNABool/other_results/perturbs/gb_mammal_double_perturb_it8.xlsx",
         sheet_name="Details",
     )
-    scores = data["Graph Score"]
-    threshold = 40000
-    mod_data = np.where(scores > threshold, threshold + 1, scores)
-    original_graph_score = data[data["Graph Modification ID"] == "OG Graph"]["Graph Score"].values[0]
-    generate_histogram(
-        freq_list=mod_data,
-        img_filename="Yeast_noticks.png",
-        plot_title="Yeast Single Perturbation Score Distribution (512 iterations)",
-        vertical_line_at=original_graph_score,
-    )
-    # For Perturbation Data
-    # perturb_data = data.set_index("Graph Modification ID")["Graph Score"].to_dict()
-    # generate_categorical_hist(
-    #     freq_dict=perturb_data,
-    #     img_filename="test_image_freq_hist.png",
-    #     plot_title="Single Perturbation Sync Scores",
-    #     vertical_line_at=list(perturb_data.keys()).index("OG Graph"),
+
+    # For Score Data
+    # scores = data["Graph Score"]
+    # # threshold = 40000
+    # # mod_data = np.where(scores > threshold, threshold + 1, scores)
+    # original_graph_score = data[data["Graph Modification ID"] == "OG Graph"]["Graph Score"].values[0]
+    # generate_histogram(
+    #     freq_list=scores,
+    #     img_filename="Yeast_noticks.png",
+    #     plot_title="Yeast Single Perturbation Score Distribution (512 iterations)",
+    #     vertical_line_at=original_graph_score,
     # )
+
+    # For Perturbation Data
+    perturb_data = data.set_index("Graph Modification ID")["Graph Score"].to_dict()
+    # filtered_data = {key: value for key, value in perturb_data.items() if value < perturb_data["OG Graph"] + 25}
+    flat_data = flatten_double_perturb_freq(perturb_data)
+    generate_categorical_hist(
+        freq_dict=flat_data,
+        img_filename="GB_Mammal_Perturbation.png",
+        plot_title="Double Perturbation Async Scores",
+        vertical_line_at=list(flat_data.keys()).index("OG Graph"),
+    )
 
     # nodes = ["Cln3", "MBF", "SBF", "Cln1,2", "Cdh1"]
     # edges = [

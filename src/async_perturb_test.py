@@ -12,8 +12,9 @@ NPROC = None
 
 
 def perturbation_mp_wrapper(args: set):
+    graph, graph_mod_id, iter_count = args
     graph_mod, avg_score, unique_final_states, max_state_avg_count, max_state, avg_seq = single_graph_execution(
-        current_graph=args[0], graph_mod=args[1], iterations=args[2]
+        current_graph=graph, graph_mod=graph_mod_id, iterations=iter_count
     )
     return graph_mod, avg_score, unique_final_states, max_state_avg_count, max_state, avg_seq
 
@@ -78,7 +79,7 @@ def score_states(iter_count: int):
 def agg_count_to_csv(final_states: dict, cyclins: list, filename: str):
     all_final_state_agg = dict()
     for final_state, sum_count in final_states.items():
-        all_final_state_agg[final_state] = round(sum_count / it_cnt)
+        all_final_state_agg[final_state] = sum_count / it_cnt
 
     data_list = [list(state) + [agg_count] for state, agg_count in all_final_state_agg.items()]
 
@@ -323,19 +324,19 @@ if __name__ == "__main__":
         )
         cell_state_calc.set_starting_state(filtered_start_states)
 
-    it_cnt = 12
+    it_cnt = 30000
 
     print(f"Initializing execution for {organism=}, with {filter_states=} and {it_cnt} iterations...")
-    double_perturb_details(organism, working_graph, "OG Graph", it_cnt)
+    # double_perturb_details(organism, working_graph, "OG Graph", it_cnt)
     # single_perturb_details(organism, working_graph, "OG Graph", it_cnt)
 
-    # avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
+    avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
     # avg_score, final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
 
-    # state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
-    # agg_count_to_csv(
-    #     final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
-    # )
+    state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
+    agg_count_to_csv(
+        final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
+    )
 
     end_time = time()
     print(f"Execution completed in {end_time - start_time} seconds for {it_cnt} iterations for {organism} cell cycle.")
