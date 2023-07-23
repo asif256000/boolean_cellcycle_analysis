@@ -190,6 +190,6 @@ Option 1 is selected after discussion.
 
 ## TODO
 
-1. Add point-of-no-return score penalty in methods.docs
-2. Perturbation figure rotation and color consistent
-3. Put data instead of histograms in the shared drive so that graph can be generated.
+1. For TN & GB Mammal check progress table for each major steady state and very small steady state to check if they are TRUE steady state
+2. Keep track of 3 different types of scores for major perturbations and OG Graph
+3. Check First Manuscript of journal

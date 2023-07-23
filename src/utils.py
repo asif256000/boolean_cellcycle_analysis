@@ -93,7 +93,7 @@ def generate_categorical_hist(
     sns.set_style(style="white")
     wid = len(freq_dict) // 2.5
     plt.figure(figsize=(wid, 20))
-    sns.barplot(x=list(freq_dict.keys()), y=list(freq_dict.values()))
+    sns.barplot(x=list(freq_dict.keys()), y=list(freq_dict.values()), color="black")
     # plt.title(plot_title)
     # plt.ylabel("Score")
     plt.xticks(rotation=90)
@@ -207,7 +207,7 @@ def flatten_double_perturb_freq(scores: dict[str, int]):
 
 if __name__ == "__main__":
     data = pd.read_excel(
-        "/Users/asifiqbal/code_projects/DNABool/other_results/perturbs/gb_mammal_double_perturb_it8.xlsx",
+        "/Users/asifiqbal/code_projects/DNABool/other_results/perturbs/gb_mammal_single_perturb_it256.xlsx",
         sheet_name="Details",
     )
 
@@ -225,13 +225,13 @@ if __name__ == "__main__":
 
     # For Perturbation Data
     perturb_data = data.set_index("Graph Modification ID")["Graph Score"].to_dict()
-    # filtered_data = {key: value for key, value in perturb_data.items() if value < perturb_data["OG Graph"] + 25}
-    flat_data = flatten_double_perturb_freq(perturb_data)
+    filtered_data = {key: value for key, value in perturb_data.items() if value < perturb_data["OG Graph"] + 5}
+    # flat_data = flatten_double_perturb_freq(perturb_data)
     generate_categorical_hist(
-        freq_dict=flat_data,
+        freq_dict=filtered_data,
         img_filename="GB_Mammal_Perturbation.png",
-        plot_title="Double Perturbation Async Scores",
-        vertical_line_at=list(flat_data.keys()).index("OG Graph"),
+        plot_title="Single Perturbation Async Scores",
+        vertical_line_at=list(filtered_data.keys()).index("OG Graph"),
     )
 
     # nodes = ["Cln3", "MBF", "SBF", "Cln1,2", "Cdh1"]

@@ -52,7 +52,7 @@ def score_states_multiprocess(iter_count: int):
                 all_state_seq_type[start_state] = {"correct": 0, "incorrect": 0, "did_not_start": 0}
             all_state_seq_type[start_state][seq_type] += 1
 
-    return int(round(graph_score_sum / iter_count, 0)), all_final_state_sum, all_state_seq_type
+    return graph_score_sum / iter_count, all_final_state_sum, all_state_seq_type
 
 
 def score_states(iter_count: int):
@@ -268,14 +268,22 @@ def double_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
 
 if __name__ == "__main__":
     start_time = time()
-    organism = "yeast"
+    organism = "fr_mammal"
 
     if organism.lower() == "yeast":
-        from yeast_inputs import cyclins, g1_state_one_cyclins, g1_state_zero_cyclins, modified_graph, original_graph
+        from yeast_inputs import (
+            custom_start_states,
+            cyclins,
+            g1_state_one_cyclins,
+            g1_state_zero_cyclins,
+            modified_graph,
+            original_graph,
+        )
 
         target_ix = 7
     elif organism.lower() == "gb_mammal":
         from gb_mammal_inputs import (
+            custom_start_states,
             cyclins,
             g1_state_one_cyclins,
             g1_state_zero_cyclins,
@@ -286,6 +294,7 @@ if __name__ == "__main__":
         target_ix = 1
     elif organism.lower() == "fr_mammal":
         from fr_mammal_inputs import (
+            custom_start_states,
             cyclins,
             g1_state_one_cyclins,
             g1_state_zero_cyclins,
@@ -302,9 +311,9 @@ if __name__ == "__main__":
         "hardcoded_self_loops": True,
         "check_sequence": True,
         "g1_states_only": False,
-        "view_state_table": False,
+        "view_state_table": True,
         "view_state_changes_only": True,
-        "view_final_state_count_table": False,
+        "view_final_state_count_table": True,
         "async_update": True,
         "random_order_cyclin": True,
         "complete_cycle": False,
@@ -324,19 +333,28 @@ if __name__ == "__main__":
         )
         cell_state_calc.set_starting_state(filtered_start_states)
 
-    it_cnt = 30000
+    fixed_start_states = True
 
-    print(f"Initializing execution for {organism=}, with {filter_states=} and {it_cnt} iterations...")
+    if fixed_start_states:
+        cell_state_calc.set_starting_state(custom_start_states)
+
+    it_cnt = 4
+
+    print(
+        f"Initializing execution for {organism=}, with {filter_states=}, {fixed_start_states=} and {it_cnt} iterations..."
+    )
     # double_perturb_details(organism, working_graph, "OG Graph", it_cnt)
     # single_perturb_details(organism, working_graph, "OG Graph", it_cnt)
 
     avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
     # avg_score, final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
 
-    state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
-    agg_count_to_csv(
-        final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
-    )
+    # state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
+    # agg_count_to_csv(
+    #     final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
+    # )
+
+    print(f"Avg score for {organism} is {avg_score} for {it_cnt} iterations.")
 
     end_time = time()
     print(f"Execution completed in {end_time - start_time} seconds for {it_cnt} iterations for {organism} cell cycle.")
