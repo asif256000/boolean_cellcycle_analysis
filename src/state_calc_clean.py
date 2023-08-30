@@ -405,7 +405,7 @@ class CellCycleStateCalculation:
         for start_state in all_start_states:
             cell_div_start_flag = False
             all_cyclin_states, update_sequence = self.__generate_state_table(
-                graph_matrix=graph_matrix, graph_mod_id=graph_mod_id, start_state=start_state, iter_count=500
+                graph_matrix=graph_matrix, graph_mod_id=graph_mod_id, start_state=start_state, iter_count=100
             )
             if self.__check_activation_index(all_cyclin_states) != -1:
                 cell_div_start_flag = True
