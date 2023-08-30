@@ -1,37 +1,37 @@
+import importlib
 from copy import deepcopy
 from random import choice, choices, shuffle
 
 from log_module import logger
-import importlib
 
 model_specific_vars = {
     "model01": {
-        "optimal_graph_score" : 751,
-        "optimal_g1_graph_score" : 2111,
-        "self_activation_flag" : False,
-        "self_deactivation_flag" : True,
+        "optimal_graph_score": 751,
+        "optimal_g1_graph_score": 2111,
+        "self_activation_flag": False,
+        "self_deactivation_flag": True,
     },
     "model02": {
-        "optimal_graph_score" : 4171,
-        "optimal_g1_graph_score" : 2111,
-        "self_activation_flag" : True,
-        "self_deactivation_flag" : True,
+        "optimal_graph_score": 4171,
+        "optimal_g1_graph_score": 2111,
+        "self_activation_flag": True,
+        "self_deactivation_flag": True,
     },
     "model03": {
-        "optimal_graph_score" : 4171,
-        "optimal_g1_graph_score" : 2111,
-        "self_activation_flag" : True,
-        "self_deactivation_flag" : True,
-    }
+        "optimal_graph_score": 4171,
+        "optimal_g1_graph_score": 2111,
+        "self_activation_flag": True,
+        "self_deactivation_flag": True,
+    },
 }
 
-class CellCycleStateCalculation:
 
+class CellCycleStateCalculation:
     # initialize model specific global state
     def __init__(self, input_json: dict) -> None:
         self.__all_cyclins = input_json["cyclins"]
         self.__organism = input_json["organism"]
-        
+
         i = importlib.import_module("%s_inputs" % self.__organism)
         self.__expected_final_state = i.expected_final_state
         self.__all_final_states_to_ignore = i.all_final_states_to_ignore
@@ -100,7 +100,7 @@ class CellCycleStateCalculation:
     def filter_start_states(self, zero_cyclins: list = list(), one_cyclins: list = list()):
         """
         Filter a list of start states based on the presence of specific cyclins.
-    
+
         This method takes two lists of cyclins, 'zero_cyclins' and 'one_cyclins', and filters
         the start states stored in the object based on their cyclin composition. A start state
         is included in the result if it contains zeros for all cyclins specified in 'zero_cyclins'
@@ -436,7 +436,7 @@ class CellCycleStateCalculation:
         for start_state in all_start_states:
             cell_div_start_flag = False
             all_cyclin_states, update_sequence = self.__generate_state_table(
-                graph_matrix=graph_matrix, graph_mod_id=graph_mod_id, start_state=start_state
+                graph_matrix=graph_matrix, graph_mod_id=graph_mod_id, start_state=start_state, iter_count=100
             )
             if self.__check_activation_index(all_cyclin_states) != -1:
                 cell_div_start_flag = True
