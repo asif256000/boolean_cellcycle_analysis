@@ -32,11 +32,12 @@ def all_perturbation_recursive_generator(graph: list[list], start_pos: int = 0):
 def all_perturbation_generator(nodes: list, graph: list[list], perturb_self_loops: bool = False):
     possible_weights = {-1, 0, 1}
     node_len = len(graph)
-    for i in range(node_len**2 + 1):
+    for i in range(node_len**2):
         ix_x1 = i // node_len
         ix_y1 = i % node_len
         if not perturb_self_loops and ix_x1 == ix_y1:
             continue
+
         for possible_perturbs1 in possible_weights - {graph[ix_x1][ix_y1]}:
             cc1_graph = deepcopy(graph)
             cc1_graph[ix_x1][ix_y1] = possible_perturbs1

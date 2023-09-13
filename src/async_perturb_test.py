@@ -14,7 +14,7 @@ NPROC = None
 def perturbation_mp_wrapper(args: set):
     graph, graph_mod_id, iter_count = args
     graph_mod, avg_score, unique_final_states, max_state_avg_count, max_state, avg_seq = single_graph_execution(
-        current_graph=graph, graph_mod=graph_mod_id, iterations=iter_count
+        current_graph=graph, graph_mod=graph_mod_id, iterations=iter_count, mp=False
     )
     return graph_mod, avg_score, unique_final_states, max_state_avg_count, max_state, avg_seq
 
@@ -135,20 +135,23 @@ def write_perturb_data(perurbation_data: list, df_cols: list, graph_img_path: Pa
     os.remove(graph_img_path)
 
 
-def avg_seq_types(seq_types: dict, iterations: int):
+def avg_seq_types(seq_types: dict):
     avg_seq_types = {"correct": 0, "incorrect": 0, "did_not_start": 0}
 
     for _, state_seq in seq_types.items():
         for seq, count in state_seq.items():
             avg_seq_types[seq] += count
 
-    return {k: v / iterations for k, v in avg_seq_types.items()}
+    return avg_seq_types
 
 
-def single_graph_execution(current_graph: list, graph_mod: str, iterations: int):
+def single_graph_execution(current_graph: list, graph_mod: str, iterations: int, mp: bool = True):
     cell_state_calc.set_custom_connected_graph(graph=current_graph, graph_identifier=graph_mod)
-    avg_graph_score, final_state_sum, state_seq_type = score_states_multiprocess(iterations)
-    avg_seq = avg_seq_types(state_seq_type, iterations)
+    if mp:
+        avg_graph_score, final_state_sum, state_seq_type = score_states_multiprocess(iterations)
+    else:
+        avg_graph_score, final_state_sum, state_seq_type = score_states(iterations)
+    avg_seq = avg_seq_types(state_seq_type)
     max_count, max_states = get_states_with_max_count(nodes=cyclins, states_count=final_state_sum)
     print(f"For {graph_mod=}, {avg_graph_score=}")
 
@@ -163,16 +166,19 @@ def single_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
     graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
         current_graph=starting_graph, graph_mod=starting_graph_mod_id, iterations=iter_count
     )
+    og_graph_score = avg_score
+    total_state_seq = sum(avg_seq.values())
     perturb_details.append(
         [
             graph_mod,
+            round(avg_score / og_graph_score, 2),
             avg_score,
             unique_final_states,
             max_state_avg,
             max_state,
-            avg_seq["correct"],
-            avg_seq["incorrect"],
-            avg_seq["did_not_start"],
+            round(100 * avg_seq["correct"] / total_state_seq, 2),
+            round(100 * avg_seq["incorrect"] / total_state_seq, 2),
+            round(100 * avg_seq["did_not_start"] / total_state_seq, 2),
         ]
     )
 
@@ -185,26 +191,28 @@ def single_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
         perturb_details.append(
             [
                 graph_mod,
+                round(avg_score / og_graph_score, 2),
                 avg_score,
                 unique_final_states,
                 max_state_avg,
                 max_state,
-                avg_seq["correct"],
-                avg_seq["incorrect"],
-                avg_seq["did_not_start"],
+                round(100 * avg_seq["correct"] / total_state_seq, 2),
+                round(100 * avg_seq["incorrect"] / total_state_seq, 2),
+                round(100 * avg_seq["did_not_start"] / total_state_seq, 2),
             ]
         )
 
     data_path = Path("other_results", "perturbs", f"{organ}_single_perturb_it{iter_count}.xlsx")
     data_cols = [
         "Graph Modification ID",
-        "Graph Score",
-        "Unique Final State Count",
-        "Max State Count",
-        "Max State(s)",
-        "Correct",
-        "Incorrect",
-        "Did not Start",
+        "Normalized Graph Score",
+        "Absolute Graph Score",
+        "Steady State Count",
+        "Largest Attractor Size",
+        "Most Frequent Steady State(s)",
+        "Correct (%)",
+        "Incorrect (%)",
+        "Did not Start (%)",
     ]
     write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
 
@@ -217,16 +225,19 @@ def double_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
     graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
         current_graph=starting_graph, graph_mod=starting_graph_mod_id, iterations=iter_count
     )
+    og_graph_score = avg_score
+    total_state_seq = sum(avg_seq.values())
     perturb_details.append(
         [
             graph_mod,
+            round(avg_score / og_graph_score, 2),
             avg_score,
             unique_final_states,
             max_state_avg,
             max_state,
-            avg_seq["correct"],
-            avg_seq["incorrect"],
-            avg_seq["did_not_start"],
+            round(100 * avg_seq["correct"] / total_state_seq, 2),
+            round(100 * avg_seq["incorrect"] / total_state_seq, 2),
+            round(100 * avg_seq["did_not_start"] / total_state_seq, 2),
         ]
     )
 
@@ -242,64 +253,63 @@ def double_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
         perturb_details.append(
             [
                 graph_mod,
+                round(avg_score / og_graph_score, 2),
                 avg_score,
                 unique_final_states,
                 max_state_avg,
                 max_state,
-                avg_seq["correct"],
-                avg_seq["incorrect"],
-                avg_seq["did_not_start"],
+                round(100 * avg_seq["correct"] / total_state_seq, 2),
+                round(100 * avg_seq["incorrect"] / total_state_seq, 2),
+                round(100 * avg_seq["did_not_start"] / total_state_seq, 2),
             ]
         )
 
     data_path = Path("other_results", "perturbs", f"{organ}_double_perturb_it{iter_count}.xlsx")
     data_cols = [
         "Graph Modification ID",
-        "Graph Score",
-        "Unique Final State Count",
-        "Max State Count",
-        "Max State(s)",
-        "Correct",
-        "Incorrect",
-        "Did not Start",
+        "Normalized Graph Score",
+        "Absolute Graph Score",
+        "Steady State Count",
+        "Largest Attractor Size",
+        "Most Frequent Steady State(s)",
+        "Correct (%)",
+        "Incorrect (%)",
+        "Did not Start (%)",
     ]
     write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
 
 
 if __name__ == "__main__":
     start_time = time()
-    organism = "fr_mammal"
+    organism = "model03"
 
-    if organism.lower() == "yeast":
-        from yeast_inputs import (
+    if organism.lower() == "model01":
+        from model01_inputs import (
             custom_start_states,
             cyclins,
             g1_state_one_cyclins,
             g1_state_zero_cyclins,
             modified_graph,
-            original_graph,
         )
 
         target_ix = 7
-    elif organism.lower() == "gb_mammal":
-        from gb_mammal_inputs import (
+    elif organism.lower() == "model02":
+        from model02_inputs import (
             custom_start_states,
             cyclins,
             g1_state_one_cyclins,
             g1_state_zero_cyclins,
             modified_graph,
-            original_graph,
         )
 
         target_ix = 1
-    elif organism.lower() == "fr_mammal":
-        from fr_mammal_inputs import (
+    elif organism.lower() == "model03":
+        from model03_inputs import (
             custom_start_states,
             cyclins,
             g1_state_one_cyclins,
             g1_state_zero_cyclins,
             modified_graph,
-            original_graph,
         )
 
         target_ix = 1
@@ -311,21 +321,22 @@ if __name__ == "__main__":
         "hardcoded_self_loops": True,
         "check_sequence": True,
         "g1_states_only": False,
-        "view_state_table": True,
+        "view_state_table": False,
         "view_state_changes_only": True,
-        "view_final_state_count_table": True,
+        "view_final_state_count_table": False,
         "async_update": True,
         "random_order_cyclin": True,
         "complete_cycle": False,
         "expensive_state_cycle_detection": True,
         "cell_cycle_activation_cyclin": cyclins[target_ix],
+        "max_updates_per_cycle": 70,
     }
 
     filter_states = False
 
     working_graph = modified_graph
     cell_state_calc = CellCycleStateCalculation(input_json=calc_params)
-    cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="OG Graph")
+    # cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
 
     if filter_states:
         filtered_start_states = cell_state_calc.filter_start_states(
@@ -333,28 +344,27 @@ if __name__ == "__main__":
         )
         cell_state_calc.set_starting_state(filtered_start_states)
 
-    fixed_start_states = True
+    fixed_start_states = False
 
     if fixed_start_states:
         cell_state_calc.set_starting_state(custom_start_states)
 
-    it_cnt = 4
+    it_cnt = 6
 
     print(
         f"Initializing execution for {organism=}, with {filter_states=}, {fixed_start_states=} and {it_cnt} iterations..."
     )
-    # double_perturb_details(organism, working_graph, "OG Graph", it_cnt)
-    # single_perturb_details(organism, working_graph, "OG Graph", it_cnt)
+    double_perturb_details(organism, working_graph, "Original Graph", it_cnt)
+    # single_perturb_details(organism, working_graph, "Original Graph", it_cnt)
 
-    avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
+    # avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
     # avg_score, final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
 
     # state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
     # agg_count_to_csv(
     #     final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
     # )
-
-    print(f"Avg score for {organism} is {avg_score} for {it_cnt} iterations.")
+    # print(f"Avg score for {organism} is {avg_score} for {it_cnt} iterations.")
 
     end_time = time()
     print(f"Execution completed in {end_time - start_time} seconds for {it_cnt} iterations for {organism} cell cycle.")
