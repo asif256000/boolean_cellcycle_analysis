@@ -31,18 +31,12 @@ class CellCycleStateCalculation:
     def __init__(self, input_json: dict) -> None:
         self.__all_cyclins = input_json["cyclins"]
         self.__organism = input_json["organism"]
-
-        i = importlib.import_module("%s_inputs" % self.__organism)
-        self.__expected_final_state = i.expected_final_state
-        self.__all_final_states_to_ignore = i.all_final_states_to_ignore
-        self.__expected_cyclin_order = i.expected_cyclin_order
-        self.__g1_state_zero_cyclins = i.g1_state_zero_cyclins
-        self.__g1_state_one_cyclins = i.g1_state_one_cyclins
-
-        self.__optimal_graph_score = model_specific_vars[self.__organism]["optimal_graph_score"]
-        self.__optimal_g1_graph_score = model_specific_vars[self.__organism]["optimal_g1_graph_score"]
-        self.__self_activation_flag = model_specific_vars[self.__organism]["self_activation_flag"]
-        self.__self_deactivation_flag = model_specific_vars[self.__organism]["self_deactivation_flag"]
+        if self.__organism == "model01":
+            self.__init_model01_yeast_specific_vars()
+        elif self.__organism == "model02":
+            self.__init_model02_mammal_specific_vars()
+        elif self.__organism == "model03":
+            self.__init_model03_mammal_specific_vars()
 
         self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(self.__all_cyclins)}
 
@@ -59,6 +53,7 @@ class CellCycleStateCalculation:
         self.__exp_cycle_detection = input_json["expensive_state_cycle_detection"]
         self.__cell_cycle_activation_cyclin = input_json["cell_cycle_activation_cyclin"]
         self.__max_iter_count = input_json["max_updates_per_cycle"]
+        self.__max_iter_count = input_json["max_updates_per_cycle"]
 
         logger.set_ignore_details_flag(flag=not self.__detailed_logs)
         self.__start_states = self.__get_all_possible_starting_states()
@@ -66,6 +61,63 @@ class CellCycleStateCalculation:
 
         logger.debug(f"Class state: {self}")
         logger.debug(f"Inputs: {input_json}")
+
+    def __init_model01_yeast_specific_vars(self):
+        from model01_inputs import (
+            all_final_states_to_ignore,
+            expected_cyclin_order,
+            expected_final_state,
+            g1_state_one_cyclins,
+            g1_state_zero_cyclins,
+        )
+
+        self.__expected_final_state = expected_final_state
+        self.__all_final_states_to_ignore = all_final_states_to_ignore
+        self.__expected_cyclin_order = expected_cyclin_order
+        self.__g1_state_zero_cyclins = g1_state_zero_cyclins
+        self.__g1_state_one_cyclins = g1_state_one_cyclins
+        self.__optimal_graph_score = 751
+        self.__optimal_g1_graph_score = 2111
+        self.__self_activation_flag = False
+        self.__self_deactivation_flag = True
+
+    def __init_model03_mammal_specific_vars(self):
+        from model03_inputs import (
+            all_final_states_to_ignore,
+            expected_cyclin_order,
+            expected_final_state,
+            g1_state_one_cyclins,
+            g1_state_zero_cyclins,
+        )
+
+        self.__expected_final_state = expected_final_state
+        self.__all_final_states_to_ignore = all_final_states_to_ignore
+        self.__expected_cyclin_order = expected_cyclin_order
+        self.__g1_state_zero_cyclins = g1_state_zero_cyclins
+        self.__g1_state_one_cyclins = g1_state_one_cyclins
+        self.__optimal_graph_score = 4171
+        self.__optimal_g1_graph_score = 2111
+        self.__self_activation_flag = True
+        self.__self_deactivation_flag = True
+
+    def __init_model02_mammal_specific_vars(self):
+        from model02_inputs import (
+            all_final_states_to_ignore,
+            expected_cyclin_order,
+            expected_final_state,
+            g1_state_one_cyclins,
+            g1_state_zero_cyclins,
+        )
+
+        self.__expected_final_state = expected_final_state
+        self.__all_final_states_to_ignore = all_final_states_to_ignore
+        self.__expected_cyclin_order = expected_cyclin_order
+        self.__g1_state_zero_cyclins = g1_state_zero_cyclins
+        self.__g1_state_one_cyclins = g1_state_one_cyclins
+        self.__optimal_graph_score = 4171
+        self.__optimal_g1_graph_score = 2111
+        self.__self_activation_flag = True
+        self.__self_deactivation_flag = True
 
     def __repr__(self) -> str:
         return (
@@ -117,6 +169,12 @@ class CellCycleStateCalculation:
         return filtered_start_states
 
     def set_starting_state(self, starting_states: list):
+        for start_state in starting_states:
+            if len(start_state) != len(self.__all_cyclins):
+                raise Exception(
+                    f"Starting State {start_state} length does not match Cyclin {self.__all_cyclins} Length!"
+                )
+        self.__start_states = starting_states
         """
         This method sets the starting states of the object to the provided list of states.
         It ensures that the length of each state matches the number of cyclins defined in the object.
@@ -327,6 +385,9 @@ class CellCycleStateCalculation:
             iter_count = self.__max_iter_count * cyclin_count
         else:
             iter_count = self.__max_iter_count
+            iter_count = self.__max_iter_count * cyclin_count
+        else:
+            iter_count = self.__max_iter_count
 
         update_order = list()
         for i in range(iter_count):
@@ -436,7 +497,7 @@ class CellCycleStateCalculation:
         for start_state in all_start_states:
             cell_div_start_flag = False
             all_cyclin_states, update_sequence = self.__generate_state_table(
-                graph_matrix=graph_matrix, graph_mod_id=graph_mod_id, start_state=start_state, iter_count=100
+                graph_matrix=graph_matrix, graph_mod_id=graph_mod_id, start_state=start_state
             )
             if self.__check_activation_index(all_cyclin_states) != -1:
                 cell_div_start_flag = True
