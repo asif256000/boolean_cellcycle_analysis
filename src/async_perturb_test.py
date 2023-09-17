@@ -182,7 +182,7 @@ def single_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
     perturb_details.append(
         [
             graph_mod,
-            round(avg_score / og_graph_score, 2),
+            round(avg_score / og_graph_score, 5),
             avg_score,
             unique_final_states,
             max_state_avg,
@@ -205,7 +205,7 @@ def single_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
         perturb_details.append(
             [
                 graph_mod,
-                round(avg_score / og_graph_score, 2),
+                round(avg_score / og_graph_score, 5),
                 avg_score,
                 unique_final_states,
                 max_state_avg,
@@ -257,7 +257,7 @@ def double_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
     perturb_details.append(
         [
             graph_mod,
-            round(avg_score / og_graph_score, 2),
+            round(avg_score / og_graph_score, 5),
             avg_score,
             unique_final_states,
             max_state_avg,
@@ -283,7 +283,7 @@ def double_perturb_details(organ: str, starting_graph: list, starting_graph_mod_
         perturb_details.append(
             [
                 graph_mod,
-                round(avg_score / og_graph_score, 2),
+                round(avg_score / og_graph_score, 5),
                 avg_score,
                 unique_final_states,
                 max_state_avg,
