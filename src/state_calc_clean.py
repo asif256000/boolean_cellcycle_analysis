@@ -502,48 +502,6 @@ class CellCycleStateCalculation:
 
         return graph_score, final_state_count, state_seq_types
 
-    def print_final_state_count_table_fallback(self, final_state_count: dict, log_level: str = "debug"):
-        table_as_str = f"\n{self.cyclin_print_map}\n"
-        table_as_str += "\t|\t".join(["Cnt"] + list(self.cyclin_print_map))
-        table_as_str += "\t|\n"
-        for state, count in final_state_count.items():
-            table_as_str += f"{count}\t|\t"
-            table_as_str += "\t|\t".join(list(state))
-            table_as_str += "\t|\n"
-
-        if log_level.lower() == "info":
-            logger.info(table_as_str)
-        else:
-            logger.debug(table_as_str)
-
-    def print_state_table_fallback(self, cyclin_states: list, random_update_sequence: list, log_level: str = "debug"):
-        inv_cyclin_lookup = {v: k for k, v in self.cyclin_print_map.items()}
-
-        curr_tracked_state = cyclin_states[0]
-        table_as_str = f"State sequence for start state: {self.state_as_str(curr_tracked_state)}\n"
-        table_as_str += f"\n{self.cyclin_print_map}\n"
-        table_as_str += "\t|\t".join(["Tm"] + list(self.cyclin_print_map))
-        if random_update_sequence:
-            table_as_str += "\t|\tUpd\t|\n"
-        else:
-            table_as_str += "\t|\n"
-
-        for ix, ix_state in enumerate(cyclin_states[1:]):
-            if self.__view_state_change_only and ix_state == curr_tracked_state:
-                continue
-            table_as_str += f"{ix+1}\t|\t"
-            table_as_str += "\t|\t".join(map(str, ix_state))
-            if random_update_sequence:
-                table_as_str += f"\t|\t{inv_cyclin_lookup[random_update_sequence[ix]]}\t|\n"
-            else:
-                table_as_str += "\t|\n"
-            curr_tracked_state = ix_state
-
-        if log_level.lower() == "info":
-            logger.info(table_as_str)
-        else:
-            logger.debug(table_as_str)
-
     def print_final_state_count_table(self, final_state_count: dict, log_level: str = "debug"):
         table_as_str = "Count of final state for each start states:\n"
         for state, count in final_state_count.items():
