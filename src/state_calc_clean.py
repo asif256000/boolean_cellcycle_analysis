@@ -2,18 +2,47 @@ from copy import deepcopy
 from random import choice, choices, shuffle
 
 from log_module import logger
+import importlib
 
+model_specific_vars = {
+    "model01": {
+        "optimal_graph_score" : 751,
+        "optimal_g1_graph_score" : 2111,
+        "self_activation_flag" : False,
+        "self_deactivation_flag" : True,
+    },
+    "model02": {
+        "optimal_graph_score" : 4171,
+        "optimal_g1_graph_score" : 2111,
+        "self_activation_flag" : True,
+        "self_deactivation_flag" : True,
+    },
+    "model03": {
+        "optimal_graph_score" : 4171,
+        "optimal_g1_graph_score" : 2111,
+        "self_activation_flag" : True,
+        "self_deactivation_flag" : True,
+    }
+}
 
 class CellCycleStateCalculation:
+
+    # initialize model specific global state
     def __init__(self, input_json: dict) -> None:
         self.__all_cyclins = input_json["cyclins"]
         self.__organism = input_json["organism"]
-        if self.__organism == "model01":
-            self.__init_model01_yeast_specific_vars()
-        elif self.__organism == "model02":
-            self.__init_model02_mammal_specific_vars()
-        elif self.__organism == "model03":
-            self.__init_model03_mammal_specific_vars()
+        
+        i = importlib.import_module("%s_inputs" % self.__organism)
+        self.__expected_final_state = i.expected_final_state
+        self.__all_final_states_to_ignore = i.all_final_states_to_ignore
+        self.__expected_cyclin_order = i.expected_cyclin_order
+        self.__g1_state_zero_cyclins = i.g1_state_zero_cyclins
+        self.__g1_state_one_cyclins = i.g1_state_one_cyclins
+
+        self.__optimal_graph_score = model_specific_vars[self.__organism]["optimal_graph_score"]
+        self.__optimal_g1_graph_score = model_specific_vars[self.__organism]["optimal_g1_graph_score"]
+        self.__self_activation_flag = model_specific_vars[self.__organism]["self_activation_flag"]
+        self.__self_deactivation_flag = model_specific_vars[self.__organism]["self_deactivation_flag"]
 
         self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(self.__all_cyclins)}
 
@@ -38,63 +67,6 @@ class CellCycleStateCalculation:
         logger.debug(f"Class state: {self}")
         logger.debug(f"Inputs: {input_json}")
 
-    def __init_model01_yeast_specific_vars(self):
-        from model01_inputs import (
-            all_final_states_to_ignore,
-            expected_cyclin_order,
-            expected_final_state,
-            g1_state_one_cyclins,
-            g1_state_zero_cyclins,
-        )
-
-        self.__expected_final_state = expected_final_state
-        self.__all_final_states_to_ignore = all_final_states_to_ignore
-        self.__expected_cyclin_order = expected_cyclin_order
-        self.__g1_state_zero_cyclins = g1_state_zero_cyclins
-        self.__g1_state_one_cyclins = g1_state_one_cyclins
-        self.__optimal_graph_score = 751
-        self.__optimal_g1_graph_score = 2111
-        self.__self_activation_flag = False
-        self.__self_deactivation_flag = True
-
-    def __init_model03_mammal_specific_vars(self):
-        from model03_inputs import (
-            all_final_states_to_ignore,
-            expected_cyclin_order,
-            expected_final_state,
-            g1_state_one_cyclins,
-            g1_state_zero_cyclins,
-        )
-
-        self.__expected_final_state = expected_final_state
-        self.__all_final_states_to_ignore = all_final_states_to_ignore
-        self.__expected_cyclin_order = expected_cyclin_order
-        self.__g1_state_zero_cyclins = g1_state_zero_cyclins
-        self.__g1_state_one_cyclins = g1_state_one_cyclins
-        self.__optimal_graph_score = 4171
-        self.__optimal_g1_graph_score = 2111
-        self.__self_activation_flag = True
-        self.__self_deactivation_flag = True
-
-    def __init_model02_mammal_specific_vars(self):
-        from model02_inputs import (
-            all_final_states_to_ignore,
-            expected_cyclin_order,
-            expected_final_state,
-            g1_state_one_cyclins,
-            g1_state_zero_cyclins,
-        )
-
-        self.__expected_final_state = expected_final_state
-        self.__all_final_states_to_ignore = all_final_states_to_ignore
-        self.__expected_cyclin_order = expected_cyclin_order
-        self.__g1_state_zero_cyclins = g1_state_zero_cyclins
-        self.__g1_state_one_cyclins = g1_state_one_cyclins
-        self.__optimal_graph_score = 4171
-        self.__optimal_g1_graph_score = 2111
-        self.__self_activation_flag = True
-        self.__self_deactivation_flag = True
-
     def __repr__(self) -> str:
         return (
             f"Class CellCycleStateCalculation. Organism: {self.__organism} "
@@ -104,9 +76,10 @@ class CellCycleStateCalculation:
         )
 
     def __get_all_possible_starting_states(self) -> list[list]:
-        """ "Generates all possible starting states from the list of cyclins that are set as the class variable.
+        """
+        Generates all possible starting states from the list of cyclins - self.__all_cyclins
 
-        :return set[list]: A set of starting states, where their order corresponds to the order of self.all_cyclins.
+        :returns A set of starting states, where their order corresponds to the order of self.__all_cyclins.
         """
         num_of_cyclins = len(self.__all_cyclins)
         binary_states_list = [f"{i:>0{num_of_cyclins}b}" for i in range(2**num_of_cyclins)]
@@ -125,6 +98,14 @@ class CellCycleStateCalculation:
         )
 
     def filter_start_states(self, zero_cyclins: list = list(), one_cyclins: list = list()):
+        """
+        Filter a list of start states based on the presence of specific cyclins.
+    
+        This method takes two lists of cyclins, 'zero_cyclins' and 'one_cyclins', and filters
+        the start states stored in the object based on their cyclin composition. A start state
+        is included in the result if it contains zeros for all cyclins specified in 'zero_cyclins'
+        and ones for all cyclins specified in 'one_cyclins'.
+        """
         filtered_start_states = list()
         zero_ixs = [self.__get_cyclin_index(zero_cyclin) for zero_cyclin in zero_cyclins]
         one_ixs = [self.__get_cyclin_index(one_cyclin) for one_cyclin in one_cyclins]
@@ -136,6 +117,10 @@ class CellCycleStateCalculation:
         return filtered_start_states
 
     def set_starting_state(self, starting_states: list):
+        """
+        This method sets the starting states of the object to the provided list of states.
+        It ensures that the length of each state matches the number of cyclins defined in the object.
+        """
         for start_state in starting_states:
             if len(start_state) != len(self.__all_cyclins):
                 raise Exception(
@@ -144,11 +129,20 @@ class CellCycleStateCalculation:
         self.__start_states = starting_states
 
     def set_expected_final_state(self, final_state: list):
+        """
+        This method sets the expected final state of the object to the provided list of state values.
+        It ensures that the length of the provided final state matches the number of cyclins defined in the object.
+        """
         if len(final_state) != len(self.__all_cyclins):
             raise Exception(f"Final State {final_state} length does not match Cyclin {self.__all_cyclins} Length!")
         self.__expected_final_state = final_state
 
     def set_custom_connected_graph(self, graph: list[list], graph_identifier: str = "Custom"):
+        """
+        This method sets a custom connected graph for the object, represented as a list of lists
+        where each inner list corresponds to the edges of a node. It checks that the length of edges
+        for each node matches the number of cyclins defined in the object.
+        """
         for ix, edges in enumerate(graph):
             if len(edges) != len(self.__all_cyclins):
                 raise Exception(
@@ -160,6 +154,11 @@ class CellCycleStateCalculation:
         self.graph_modification = graph_identifier
 
     def set_random_modified_graph(self, og_graph: list[list], change_count: int = 2) -> str:
+        """
+        This method generates a modified random graph based on the original graph ('og_graph').
+        It performs a specified number of random edge shuffles and returns a comma-separated string
+        describing each change made.
+        """
         graph = deepcopy(og_graph)
         cyclin_len = len(self.__all_cyclins)
 
@@ -173,6 +172,10 @@ class CellCycleStateCalculation:
         return ", ".join(change_tracker)
 
     def __edge_shuffle(self, cyclin_len: int, graph_to_modify: list) -> str:
+        """
+        This private method performs a random edge shuffle operation on the provided 'graph_to_modify'.
+        It selects two random cyclins in the graph and changes the edge weight between them.
+        """
         possible_edge_weights = {-1, 0, 1}
         change = choices(range(cyclin_len), k=2)
         x, y = change[0], change[-1]
@@ -187,13 +190,17 @@ class CellCycleStateCalculation:
         return ", ".join([f"{k}: {v}" for k, v in state_dict.items()])
 
     def __calculate_state_scores(self, final_state: list) -> int:
+        """
+        This private method calculates a score by comparing the 'final_state' with the expected
+        final state (__expected_final_state) for each cyclin. The score is the sum of absolute
+        differences between the two.
+        """
         score = 0
         for ix, exp_state in enumerate(self.__expected_final_state):
             if isinstance(exp_state, int):
                 score += abs(final_state[ix] - exp_state)
         return score
 
-    @staticmethod
     def __generate_final_state_counts(final_states: list) -> dict:
         return {state: final_states.count(state) for state in set(final_states)}
 
@@ -260,6 +267,11 @@ class CellCycleStateCalculation:
             next_state[cyclin_ix] = 1
 
     def __async_calculate_next_step(self, graph_matrix: list[list], current_state: list, cyclin_ix: int) -> list:
+        """
+        This private method calculates the next state of a cyclin ('cyclin_ix') in the system asynchronously.
+        It considers the interactions between the cyclin and other cyclins in the system represented by 'graph_matrix'.
+        The result is a new state for the specified cyclin.
+        """
         next_state = [x for x in current_state]
 
         state_value = 0
@@ -278,6 +290,11 @@ class CellCycleStateCalculation:
         return next_state
 
     def __sync_calculate_next_step(self, graph_matrix: list[list], current_state: list) -> list:
+        """
+        This private method calculates the next state of all cyclins in the system synchronously.
+        It considers the interactions between cyclins represented by 'graph_matrix' and calculates
+        the next state for each cyclin.
+        """
         next_state = [x for x in current_state]
 
         for ix, cyclin_state in enumerate(current_state):
@@ -297,6 +314,11 @@ class CellCycleStateCalculation:
         return next_state
 
     def __generate_state_table(self, graph_matrix: list[list], graph_mod_id: str, start_state: list) -> list:
+        """
+        This method generates a state table by simulating the dynamics of the network
+        model described by the given graph matrix, starting from the provided
+        initial state.
+        """
         cyclin_states = [start_state]
         curr_state = [x for x in start_state]
         cyclin_count = len(self.__all_cyclins)
@@ -334,11 +356,15 @@ class CellCycleStateCalculation:
 
         return cyclin_states, update_order
 
-    @staticmethod
     def remove_continuous_duplicates(all_states: list) -> list:
         return [v for i, v in enumerate(all_states) if i == 0 or v != all_states[i - 1]]
 
     def __lazy_detect_cycles(self, all_states: list) -> bool:
+        """
+        This method checks if a cyclic pattern has been detected in the list of states
+        generated during the simulation. The detection depends on whether the simulation
+        is asynchronous or synchronous.
+        """
         if not self.__async_update and all_states[-1] != all_states[-2]:
             return True
         if self.__async_update and all_states[-1] != all_states[-1 * len(self.__all_cyclins)]:
@@ -374,6 +400,11 @@ class CellCycleStateCalculation:
         )
 
     def __check_activation_index(self, all_states: list) -> int:
+        """
+        This method examines the list of states generated during the simulation to find
+        the index at which a specified cyclin is activated. The activation is determined
+        by the presence of a value '1' in the cyclin's position in the state vector.
+        """
         default_ix = -1
         target_cyclin_ix = self.__get_cyclin_index(self.__cell_cycle_activation_cyclin)
         filtered_states = self.remove_continuous_duplicates(all_states)
@@ -385,6 +416,11 @@ class CellCycleStateCalculation:
         return default_ix
 
     def __iterate_all_start_states(self, graph_matrix: list[list], graph_mod_id: str) -> tuple[dict, list]:
+        """
+        This method iterates through all possible start states of the cell cycle model and
+        simulates the cell cycle dynamics. It calculates state scores and determines the
+        final states of each simulation.
+        """
         state_scores_dict = dict()
         final_states = list()
         incorrect_seq_tracker = list()
@@ -484,6 +520,12 @@ class CellCycleStateCalculation:
     def generate_graph_score_and_final_states(
         self, graph_info: tuple[list[list], str] = None
     ) -> tuple[int, dict, dict]:
+        """
+        This method calculates a graph score and generates final state information for a
+        given graph modification, which includes the network's adjacency matrix and a
+        unique identifier. The graph score is determined based on state scores, and the
+        final state information includes counts and sequence types.
+        """
         logger.set_ignore_details_flag(flag=not self.__detailed_logs)
 
         if graph_info:
