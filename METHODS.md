@@ -4,4 +4,6 @@ We started with boolean cell cycle model of budding yeast from the [paper](https
 
 We developed our module to replicate the results of the paper, specifically the state path each start states go through (`Table 2` in the paper) and count the number of starting states that merge to each unique final state ((`Table 1` in the paper)).
 
-The paper implements synchronous update scheme for the cell cycle progression, which is not very natural way cell cycle progresses. In synchronous cell cycle progression, all the proteins involved in the cell cycle go through the reaction at the same time instance based on their states in the .
+The paper implements synchronous update scheme for the cell cycle progression, which is not very natural way cell cycle progresses. In synchronous cell cycle progression, all the proteins involved in the cell cycle go through the reaction at the same time instance based on their states in the previous time instance.
+
+We implement Asynchronous Random update scheme, where the updates occur asynchronously and at a random sequence, i.e the no two proteins update at the same time instance, and the sequence of the protein update is chosen at random.
