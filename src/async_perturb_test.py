@@ -353,8 +353,8 @@ if __name__ == "__main__":
     print(
         f"Initializing execution for {organism=}, with {filter_states=}, {fixed_start_states=} and {it_cnt} iterations..."
     )
-    # double_perturb_details(organism, working_graph, "Original Graph", it_cnt)
-    # single_perturb_details(organism, working_graph, "Original Graph", it_cnt)
+    double_perturb_details(organism, working_graph, "Original Graph", it_cnt)
+    single_perturb_details(organism, working_graph, "Original Graph", it_cnt)
 
     cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
     avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
