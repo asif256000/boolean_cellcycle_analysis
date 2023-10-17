@@ -329,14 +329,13 @@ if __name__ == "__main__":
         "complete_cycle": False,
         "expensive_state_cycle_detection": True,
         "cell_cycle_activation_cyclin": cyclins[target_ix],
-        "max_updates_per_cycle": 70,
+        "max_updates_per_cycle": 500,
     }
 
     filter_states = False
 
     working_graph = modified_graph
     cell_state_calc = CellCycleStateCalculation(input_json=calc_params)
-    # cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
 
     if filter_states:
         filtered_start_states = cell_state_calc.filter_start_states(
@@ -349,22 +348,23 @@ if __name__ == "__main__":
     if fixed_start_states:
         cell_state_calc.set_starting_state(custom_start_states)
 
-    it_cnt = 6
+    it_cnt = 12
 
     print(
         f"Initializing execution for {organism=}, with {filter_states=}, {fixed_start_states=} and {it_cnt} iterations..."
     )
-    double_perturb_details(organism, working_graph, "Original Graph", it_cnt)
+    # double_perturb_details(organism, working_graph, "Original Graph", it_cnt)
     # single_perturb_details(organism, working_graph, "Original Graph", it_cnt)
 
-    # avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
+    cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
+    avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
     # avg_score, final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
 
-    # state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
-    # agg_count_to_csv(
-    #     final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_{organism}.csv"
-    # )
-    # print(f"Avg score for {organism} is {avg_score} for {it_cnt} iterations.")
+    state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_mod_{organism}.csv")
+    agg_count_to_csv(
+        final_states=final_states_sum, cyclins=cyclins, filename=f"final_state_avg_{it_cnt}_mod_{organism}.csv"
+    )
+    print(f"Avg score for mod_{organism} is {avg_score} for {it_cnt} iterations.")
 
     end_time = time()
     print(f"Execution completed in {end_time - start_time} seconds for {it_cnt} iterations for {organism} cell cycle.")
