@@ -1,10 +1,10 @@
 # A Perturbation Approach for Refining Mathematical Models of Cell Cycle Regulation
 
-This repository contains the driving code for the computation part of the paper titled "A Perturbation Approach for Refining Mathematical Models of Cell Cycle Regulation". This paper is currently under review from a well-known publication.
+This repository contains the driving code for the computation part of the paper titled "A Perturbation Approach for Refining Mathematical Models of Cell Cycle Regulation". This paper is currently under review in a peer-reviewed journal.
 
 ## Description
 
-The primary goal of this paper is to analyze all perturbations of the boolean networks of cell cycles and identify the perturbations that perform particularly well under certain conditions. The code in this repository implements the perturbation approach described in the paper and provides a framework for analyzing the results using graph scores (details in the paper) as a metric.
+The primary goal of this paper is to analyze all perturbations of the boolean networks of cell cycles and identify the perturbations that perform better under certain conditions. The code in this repository implements the perturbation approach described in the paper and provides a framework for analyzing the results using graph scores (details in the paper) as a metric.
 
 ## Installation
 
