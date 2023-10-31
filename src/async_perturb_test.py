@@ -358,7 +358,7 @@ if __name__ == "__main__":
 
     cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
     # avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(iter_count=it_cnt)
-    avg_score, final_states_sum, state_seq_count = score_states(iter_count=it_cnt)
+    avg_score, final_states_sum, state_seq_cnt = score_states(iter_count=it_cnt)
 
     state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_mod_{organism}.csv")
     agg_count_to_csv(
