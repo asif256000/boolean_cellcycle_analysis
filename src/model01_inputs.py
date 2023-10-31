@@ -56,3 +56,31 @@ expected_cyclin_order = [
     {"Clb1,2": 1, "Cdc2014": 0},
     {"Cdc2014": 1},
 ]
+
+# other start states to check than G1 start states
+# expected cyclin order is verified for these start states as well
+extra_states_to_check = [
+    # {
+    #     "name": "late_g1_state",
+    #     "start_state_zero_cyclins" : ["Clb5,6", "Cdc2014", "Clb1,2", "Mcm1,SFF"],
+    #     "start_state_one_cyclins" : ["Cln1,2"],
+    #     "expected_cyclin_order" : []
+    # },
+    {
+        "name": "s_state",
+        "start_state_zero_cyclins" : ["Cdc2014", "Clb1,2", "Mcm1,SFF"],
+        "start_state_one_cyclins" : ["Clb5,6"],
+        "expected_cyclin_order" : [
+            {"Clb1,2": 1, "Cdc2014": 0},
+            {"Cdc2014": 1},
+        ]
+    },
+    {
+        "name": "g2/m_state",
+        "start_state_zero_cyclins" : ["Cdc2014"],
+        "start_state_one_cyclins" : ["Clb1,2"],
+        "expected_cyclin_order" : [
+            {"Cdc2014": 1},
+        ]
+    },
+]

@@ -63,6 +63,7 @@ class CellCycleStateCalculation:
         logger.set_ignore_details_flag(flag=not self.__detailed_logs)
         self.__start_states = self.__get_all_possible_starting_states()
         self.__g1_start_states = self.__get_all_g1_states()
+        self.__extra_start_states_list = self.__get_extra_states_list(i.extra_states_to_check)
 
         logger.debug(f"Class state: {self}")
         logger.debug(f"Inputs: {input_json}")
@@ -96,6 +97,19 @@ class CellCycleStateCalculation:
         return self.filter_start_states(
             zero_cyclins=self.__g1_state_zero_cyclins, one_cyclins=self.__g1_state_one_cyclins
         )
+
+    def __get_extra_states_list(self, extra_states_to_check) -> list:
+        final_states = []
+        for start_state in extra_states_to_check:
+            final_states.append({       
+                "name": start_state.get("name"),         
+                "start_states": self.filter_start_states(
+                    zero_cyclins=start_state.get("start_state_zero_cyclins"), one_cyclins=start_state.get("start_state_one_cyclins")
+                ),
+                "expected_cyclin_order": start_state.get("expected_cyclin_order")
+            })
+        return final_states
+
 
     def filter_start_states(self, zero_cyclins: list = list(), one_cyclins: list = list()):
         """
@@ -201,7 +215,7 @@ class CellCycleStateCalculation:
                 score += abs(final_state[ix] - exp_state)
         return score
 
-    def __generate_final_state_counts(final_states: list) -> dict:
+    def __generate_final_state_counts(self, final_states: list) -> dict:
         return {state: final_states.count(state) for state in set(final_states)}
 
     def __self_degradation_loop(self, graph_matrix: list[list], cyclin_index: int) -> bool:
@@ -356,7 +370,7 @@ class CellCycleStateCalculation:
 
         return cyclin_states, update_order
 
-    def remove_continuous_duplicates(all_states: list) -> list:
+    def remove_continuous_duplicates(self, all_states: list) -> list:
         return [v for i, v in enumerate(all_states) if i == 0 or v != all_states[i - 1]]
 
     def __lazy_detect_cycles(self, all_states: list) -> bool:
@@ -434,12 +448,11 @@ class CellCycleStateCalculation:
             all_start_states = self.__start_states
 
         for start_state in all_start_states:
-            cell_div_start_flag = False
             all_cyclin_states, update_sequence = self.__generate_state_table(
                 graph_matrix=graph_matrix, graph_mod_id=graph_mod_id, start_state=start_state
             )
-            if self.__check_activation_index(all_cyclin_states) != -1:
-                cell_div_start_flag = True
+            
+            cell_div_start_flag = self.__check_activation_index(all_cyclin_states) != -1
 
             if self.__exp_cycle_detection and self.__detect_end_cycles(all_cyclin_states):
                 final_states.append("C" * len(self.__all_cyclins))
@@ -464,24 +477,36 @@ class CellCycleStateCalculation:
                 self.print_state_table(all_cyclin_states, update_sequence)
 
             curr_start_state_str = self.state_as_str(start_state)
-            if self.__check_sequence and start_state in self.__g1_start_states:
-                if not cell_div_start_flag:
-                    not_started_seq_tracker.append(curr_start_state_str)
-                    state_seq_type["".join(map(str, start_state))] = "did_not_start"
-                    if start_state in self.__g1_start_states:
+            if self.__check_sequence:
+                if start_state in self.__g1_start_states:
+                    if not cell_div_start_flag:
+                        not_started_seq_tracker.append(curr_start_state_str)
+                        state_seq_type["".join(map(str, start_state))] = "did_not_start"
                         state_score += 100
                         state_scores_dict["".join(map(str, start_state))] = state_score
-                    continue
-                if self.verify_sequence(all_cyclin_states):
-                    correct_seq_tracker.append(curr_start_state_str)
-                    state_seq_type["".join(map(str, start_state))] = "correct"
+                        continue
+                    if self.verify_sequence_g1_start_state(all_cyclin_states):
+                        correct_seq_tracker.append(curr_start_state_str)
+                        state_seq_type["".join(map(str, start_state))] = "correct"
+                    else:
+                        logger.debug("Correct Cyclin order not followed for g1 start_state", detail=True)
+                        incorrect_seq_tracker.append(curr_start_state_str)
+                        state_seq_type["".join(map(str, start_state))] = "incorrect"
+                        state_score += 100
+                        state_scores_dict["".join(map(str, start_state))] = state_score
                 else:
-                    logger.debug("Correct Cyclin order not followed for this start_state", detail=True)
-                    incorrect_seq_tracker.append(curr_start_state_str)
-                    state_seq_type["".join(map(str, start_state))] = "incorrect"
-                    if start_state in self.__g1_start_states:
-                        state_score += 100
-                        state_scores_dict["".join(map(str, start_state))] = state_score
+                    # check the extra states list to see if this state belongs there
+                    for extra_start_space in self.__extra_start_states_list:
+                        if start_state in extra_start_space.get("start_states"):
+                            if self.__verify_sequence(all_cyclin_states, extra_start_space.get("expected_cyclin_order")):
+                                correct_seq_tracker.append(curr_start_state_str)
+                                state_seq_type["".join(map(str, start_state))] = "correct"
+                            else:
+                                logger.debug("Correct Cyclin order not followed for the start_state" + extra_start_space.get("name"), detail=True)
+                                incorrect_seq_tracker.append(curr_start_state_str)
+                                state_seq_type["".join(map(str, start_state))] = "incorrect"
+                                state_score += 100
+                                state_scores_dict["".join(map(str, start_state))] = state_score
 
         # tracked_correct_states = "\n".join(correct_seq_tracker)
         # tracked_incorrect_states = "\n".join(incorrect_seq_tracker)
@@ -499,23 +524,26 @@ class CellCycleStateCalculation:
 
         return state_scores_dict, final_states, state_seq_type
 
-    def verify_sequence(self, all_states: list) -> bool:
+    def __verify_sequence(self, all_states: list, expected_cyclin_order: list) -> bool:
+        filtered_states = self.remove_continuous_duplicates(all_states)
+        expected_order = [order for order in expected_cyclin_order]
+        for curr_state in filtered_states:
+            if not expected_order:
+                break
+            if expected_order[0].items() <= dict(zip(self.__all_cyclins, curr_state)).items():
+                expected_order.pop(0)
+
+        return len(expected_order) == 0
+
+
+    def verify_sequence_g1_start_state(self, all_states: list) -> bool:
         """Checks if the state path that was traversed follows expected order. Returns True if it follows correct sequence, otherwise returns False.
 
         :param list all_states: State order that was followed by the cell cycle.
         :return bool: True if expected sequence was followed, otherwise returns False.
         """
-        filtered_states = self.remove_continuous_duplicates(all_states)
-        expected_order = [order for order in self.__expected_cyclin_order]
-        for curr_state in filtered_states:
-            if not expected_order:
-                break
-            if expected_order[0].items() <= dict(zip(self.__all_cyclins, curr_state)).items():
-                _ = expected_order.pop(0)
-
-        if len(expected_order) != 0:
-            return False
-        return True
+        return self.__verify_sequence(all_states, self.__expected_cyclin_order)
+        
 
     def generate_graph_score_and_final_states(
         self, graph_info: tuple[list[list], str] = None
