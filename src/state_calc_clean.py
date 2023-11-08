@@ -476,7 +476,7 @@ class CellCycleStateCalculation:
                     not_started_seq_tracker.append(curr_start_state_str)
                     state_seq_type["".join(map(str, start_state))] = "did_not_start"
                     if start_state in self.__g1_start_states:
-                        state_score += 100
+                        state_score += self.__sequence_penalty
                         state_scores_dict["".join(map(str, start_state))] = state_score
                     continue
                 if self.verify_sequence(all_cyclin_states):
@@ -487,7 +487,7 @@ class CellCycleStateCalculation:
                     incorrect_seq_tracker.append(curr_start_state_str)
                     state_seq_type["".join(map(str, start_state))] = "incorrect"
                     if start_state in self.__g1_start_states:
-                        state_score += 100
+                        state_score += self.__sequence_penalty
                         state_scores_dict["".join(map(str, start_state))] = state_score
 
         # tracked_correct_states = "\n".join(correct_seq_tracker)
