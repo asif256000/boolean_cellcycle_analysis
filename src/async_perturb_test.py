@@ -351,7 +351,7 @@ if __name__ == "__main__":
         "complete_cycle": False,
         "expensive_state_cycle_detection": True,
         "cell_cycle_activation_cyclin": cyclins[target_ix],
-        "max_updates_per_cycle": 500,
+        "max_updates_per_cycle": 150,
     }
 
     filter_states = False
