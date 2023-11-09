@@ -43,7 +43,7 @@ class CellCycleStateCalculation:
         self.__optimal_g1_graph_score = model_specific_vars[self.__organism]["optimal_g1_graph_score"]
         self.__self_activation_flag = model_specific_vars[self.__organism]["self_activation_flag"]
         self.__self_deactivation_flag = model_specific_vars[self.__organism]["self_deactivation_flag"]
-        self.__sequence_penalty = self._calculate_penalty()
+        self.__sequence_penalty = self.__calculate_penalty()
 
         self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(self.__all_cyclins)}
 
@@ -76,7 +76,7 @@ class CellCycleStateCalculation:
             f"Expected Final State: {dict(zip(self.__all_cyclins, self.__expected_final_state))}"
         )
 
-    def _calculate_penalty(self) -> int:
+    def __calculate_penalty(self) -> int:
         """
         This method calculates a penalty score based on the number of nodes in the graph and the number of states for which sequence is verified.
         """
@@ -208,7 +208,7 @@ class CellCycleStateCalculation:
                 score += abs(final_state[ix] - exp_state)
         return score
 
-    def __generate_final_state_counts(final_states: list) -> dict:
+    def __generate_final_state_counts(self, final_states: list) -> dict:
         return {state: final_states.count(state) for state in set(final_states)}
 
     def __self_degradation_loop(self, graph_matrix: list[list], cyclin_index: int) -> bool:
@@ -363,7 +363,7 @@ class CellCycleStateCalculation:
 
         return cyclin_states, update_order
 
-    def remove_continuous_duplicates(all_states: list) -> list:
+    def remove_continuous_duplicates(self, all_states: list) -> list:
         return [v for i, v in enumerate(all_states) if i == 0 or v != all_states[i - 1]]
 
     def __lazy_detect_cycles(self, all_states: list) -> bool:
