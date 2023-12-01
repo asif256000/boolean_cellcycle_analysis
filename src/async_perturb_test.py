@@ -201,7 +201,7 @@ def single_perturb_details(
 
     data_path = Path("other_results", "perturbs", f"{organ}_single_perturb_it{iter_count}.xlsx")
     data_cols = [
-        "Graph Modification ID",
+        "Perturbation ID",
         "Normalized Graph Score",
         "Absolute Graph Score",
         "Steady State Count",
@@ -274,7 +274,7 @@ def double_perturb_details(
 
     data_path = Path("other_results", "perturbs", f"{organ}_double_perturb_it{iter_count}.xlsx")
     data_cols = [
-        "Graph Modification ID",
+        "Perturbation ID",
         "Normalized Graph Score",
         "Absolute Graph Score",
         "Steady State Count",
