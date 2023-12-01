@@ -337,21 +337,23 @@ if __name__ == "__main__":
         target_ix = 1
 
     calc_params = {
-        "cyclins": cyclins,
-        "organism": organism,
-        "detailed_logs": False,
-        "hardcoded_self_loops": True,
-        "check_sequence": True,
-        "g1_states_only": False,
-        "view_state_table": False,
-        "view_state_changes_only": True,
-        "view_final_state_count_table": False,
-        "async_update": True,
-        "random_order_cyclin": True,
-        "complete_cycle": False,
-        "expensive_state_cycle_detection": True,
-        "cell_cycle_activation_cyclin": cyclins[target_ix],
-        "max_updates_per_cycle": 150,
+        "cyclins": cyclins,  # Input according to the organism passed
+        "organism": organism,  # Organism is passed as a string. Possible values: "model01", "model02", "model03"
+        "detailed_logs": False,  # Generates large log files with detailed execution information
+        "hardcoded_self_loops": True,  # Hardcoded self loops for the graph. If this is True, self-loops in the input is followed, otherwise self-loops are calculated at runtime according to incoming and outgoing edges
+        "check_sequence": True,  # Checks if the state sequence follows the expected order or not
+        "g1_states_only": False,  # Start states are fixed to G1 states only if this is True (G1 states are defined in the input file)
+        "view_state_table": False,  # Prints the state table in the log file for each iteration
+        "view_state_changes_only": True,  # Prints only the state changes and states where there is no change is ignored in the log file
+        "view_final_state_count_table": True,  # Prints the final state count table in the log file
+        "async_update": True,  # If True, the state of the nodes are updated asynchronously, otherwise the state of the nodes are updated synchronously
+        "random_order_cyclin": True,  # If True, the cyclins are updated in a random order, otherwise the cyclins are updated in the order of the cyclins list
+        "complete_cycle": False,  # If True, the order of cyclin update, even when randomly picked, always picks all the nodes in the cyclin before picking the same cyclin again
+        "expensive_state_cycle_detection": True,  # Recommended to keep True. If True, the state cycle detection is done by checking for cycle of any length in the end of state sequence, otherwise the state cycle detection is done by comparing the last two states only
+        "cell_cycle_activation_cyclin": cyclins[
+            target_ix
+        ],  # The cyclin that is used to detect the cell cycle activation. If this is never activated, the cell cycle is categorized as 'Did not Start'
+        "max_updates_per_cycle": 150,  # Number of updates in every state cycle. The bigger this number is, the more likely that the final state reaches a steady state, but it also takes more time to compute
     }
 
     filter_states = False
