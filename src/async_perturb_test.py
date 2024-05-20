@@ -73,7 +73,10 @@ def agg_count_to_csv(final_states: dict, cyclins: list, iter_count: int, filenam
     data_list = [list(state) + [agg_count] for state, agg_count in all_final_state_agg.items()]
 
     final_state_df = pd.DataFrame(data_list, columns=cyclins + ["Avg Count"])
-    csv_path = Path("other_results", "final_state_avg", filename)
+    csv_folder = Path("other_results", "final_state_avg")
+    if not csv_folder.is_dir():
+        csv_folder.mkdir(parents=True, exist_ok=True)
+    csv_path = csv_folder / filename
     final_state_df.to_csv(csv_path)
 
 
@@ -84,7 +87,11 @@ def state_seq_to_csv(state_seq_count: dict, filename: str):
             list(start_state) + [state_seq["correct"], state_seq["incorrect"], state_seq["did_not_start"]]
         )
     df = pd.DataFrame(df_as_list, columns=[cyclins + ["correct", "incorrect", "did_not_start"]])
-    df.to_csv(Path("other_results", "state_seq", filename))
+    csv_folder = Path("other_results", "state_seq")
+    if not csv_folder.is_dir():
+        csv_folder.mkdir(parents=True, exist_ok=True)
+    csv_path = csv_folder / filename
+    df.to_csv(csv_path)
 
 
 def state_to_dict(nodes: list, state: str) -> dict:
@@ -149,7 +156,11 @@ def single_perturb_details(
     cyclins: list,
     iter_count: int,
 ):
-    graph_image_path = Path("figures", f"working_graph_{organ}_{int(time())}.png")
+    graph_image_folder = Path("figures")
+    if not graph_image_folder.is_dir():
+        graph_image_folder.mkdir(parents=True, exist_ok=True)
+    graph_image_file = f"working_graph_{organ}_{int(time())}.png"
+    graph_image_path = graph_image_folder / graph_image_file
     draw_graph_from_matrix(nodes=cyclins, matrix=starting_graph, graph_img_path=graph_image_path)
 
     perturb_details = list()
@@ -199,7 +210,11 @@ def single_perturb_details(
             ]
         )
 
-    data_path = Path("other_results", "perturbs", f"{organ}_single_perturb_it{iter_count}.xlsx")
+    data_folder = Path("other_results", "perturbs")
+    if not data_folder.is_dir():
+        data_folder.mkdir(parents=True, exist_ok=True)
+    data_file = f"{organ}_single_perturb_it{iter_count}.xlsx"
+    data_path = data_folder / data_file
     data_cols = [
         "Perturbation ID",
         "Normalized Graph Score",
@@ -222,7 +237,11 @@ def double_perturb_details(
     cyclins: list,
     iter_count: int,
 ):
-    graph_image_path = Path("figures", f"working_graph_{organ}_{int(time())}.png")
+    graph_image_folder = Path("figures")
+    if not graph_image_folder.is_dir():
+        graph_image_folder.mkdir(parents=True, exist_ok=True)
+    graph_image_file = f"working_graph_{organ}_{int(time())}.png"
+    graph_image_path = graph_image_folder / graph_image_file
     draw_graph_from_matrix(nodes=cyclins, matrix=starting_graph, graph_img_path=graph_image_path)
 
     perturb_details = list()
@@ -272,7 +291,11 @@ def double_perturb_details(
             ]
         )
 
-    data_path = Path("other_results", "perturbs", f"{organ}_double_perturb_it{iter_count}.xlsx")
+    data_folder = Path("other_results", "perturbs")
+    if not data_folder.is_dir():
+        data_folder.mkdir(parents=True, exist_ok=True)
+    data_file = f"{organ}_double_perturb_it{iter_count}.xlsx"
+    data_path = data_folder / data_file
     data_cols = [
         "Perturbation ID",
         "Normalized Graph Score",
