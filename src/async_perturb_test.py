@@ -10,6 +10,7 @@ from utils import all_perturbation_generator, draw_graph_from_matrix, single_per
 
 NPROC = None
 
+#Functions
 
 def perturbation_mp_wrapper(args: tuple):
     state_calc_obj, graph, graph_mod_id, cyclins, iter_count = args
@@ -323,11 +324,14 @@ def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt
     )
     print(f"Avg score for {organism} is {avg_score} for {it_cnt} iterations.")
 
+#Main method
 
 if __name__ == "__main__":
     start_time = time()
+    #Change this variable to change the model
     organism = "model01"
 
+    #Import model01 data
     if organism.lower() == "model01":
         from model01_inputs import (
             custom_start_states,
@@ -338,6 +342,8 @@ if __name__ == "__main__":
         )
 
         target_ix = 7
+
+    #Import model02 data
     elif organism.lower() == "model02":
         from model02_inputs import (
             custom_start_states,
@@ -348,6 +354,8 @@ if __name__ == "__main__":
         )
 
         target_ix = 1
+
+    #Import model03 data
     elif organism.lower() == "model03":
         from model03_inputs import (
             custom_start_states,
@@ -359,6 +367,7 @@ if __name__ == "__main__":
 
         target_ix = 1
 
+    #Dictionary containing parameters that can be changed
     calc_params = {
         "cyclins": cyclins,  # Input according to the organism passed
         "organism": organism,  # Organism is passed as a string. Possible values: "model01", "model02", "model03"
@@ -390,12 +399,13 @@ if __name__ == "__main__":
         )
         cell_state_calc.set_starting_state(filtered_start_states)
 
+    #Enable to use a custom starting state
     fixed_start_states = False
 
     if fixed_start_states:
         cell_state_calc.set_starting_state(custom_start_states)
 
-    single_it_cnt = 500
+    single_it_cnt = 10
     double_it_cnt = 20
 
     print(
@@ -405,10 +415,10 @@ if __name__ == "__main__":
     cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
 
     write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=single_it_cnt)
-    # write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=double_it_cnt)
+    #write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=double_it_cnt)
 
-    single_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, single_it_cnt)
-    double_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, double_it_cnt)
+    #single_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, single_it_cnt)
+    #double_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, double_it_cnt)
 
     end_time = time()
     print(
