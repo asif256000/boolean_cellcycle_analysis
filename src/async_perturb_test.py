@@ -35,6 +35,8 @@ def mp_wrapper(state_calc_obj: CellCycleStateCalculation):
 
 
 def score_states_multiprocess(state_calc_obj: CellCycleStateCalculation, iter_count: int, multi_process: bool = True):
+    '''
+    '''
     graph_score_sum = 0
     all_final_state_sum = dict()
     all_state_seq_type = dict()
@@ -310,8 +312,10 @@ def double_perturb_details(
     ]
     write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
 
-
 def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt: int):
+    '''
+    This function is the main function responsible for performing the simulations and gathering data on the success of each model.
+    '''
     avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(
         state_calc_obj=state_calc_obj, iter_count=it_cnt, multi_process=True
     )
@@ -388,6 +392,7 @@ if __name__ == "__main__":
         "max_updates_per_cycle": 150,  # Number of updates in every state cycle. The bigger this number is, the more likely that the final state reaches a steady state, but it also takes more time to compute
     }
 
+    #Enable to use filter states
     filter_states = False
 
     working_graph = modified_graph
@@ -405,13 +410,16 @@ if __name__ == "__main__":
     if fixed_start_states:
         cell_state_calc.set_starting_state(custom_start_states)
 
+    #Change this variable to change the amount of single iterations or the amount of times a random edge will be changed
     single_it_cnt = 10
+    #Change this variable to change the amount of double iterations or the amount of times two random edges will be changed
     double_it_cnt = 20
 
     print(
         f"Initializing execution for {organism=}, with {filter_states=}, {fixed_start_states=}, {single_it_cnt=}, {double_it_cnt=}..."
     )
 
+    #Create the graph 
     cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
 
     write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=single_it_cnt)

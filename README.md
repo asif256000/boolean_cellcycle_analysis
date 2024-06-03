@@ -8,7 +8,7 @@ The primary goal of this paper is to analyze all perturbations of the boolean ne
 
 ## Installation
 
-1. Clone the repository: `git clone https://github.com/username/repo-name.git`
+1. Clone the repository: `git clone https://github.com/asif256000/boolean_cellcycle_analysis`
 2. Install the required libraries: `pip install -r requirements.txt`
 
 ## Usage
