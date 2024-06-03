@@ -36,11 +36,13 @@ def mp_wrapper(state_calc_obj: CellCycleStateCalculation):
 
 def score_states_multiprocess(state_calc_obj: CellCycleStateCalculation, iter_count: int, multi_process: bool = True):
     '''
+    This function will run the given amount of iterations on the given graph and calculate the average score, correctness, and final states.
     '''
     graph_score_sum = 0
     all_final_state_sum = dict()
     all_state_seq_type = dict()
 
+    #Run the simulation
     if multi_process:
         with mp.Pool(processes=NPROC) as mp_pool:
             results = mp_pool.map(
@@ -53,6 +55,7 @@ def score_states_multiprocess(state_calc_obj: CellCycleStateCalculation, iter_co
             graph_score, final_state_dict, state_seq_type = state_calc_obj.generate_graph_score_and_final_states()
             results.append((graph_score, final_state_dict, state_seq_type))
 
+    #Calculate statistics from the results
     for graph_score, final_state_dict, state_seq_type in results:
         graph_score_sum += graph_score
         for final_state, state_count in final_state_dict.items():
@@ -69,6 +72,9 @@ def score_states_multiprocess(state_calc_obj: CellCycleStateCalculation, iter_co
 
 
 def agg_count_to_csv(final_states: dict, cyclins: list, iter_count: int, filename: str):
+    '''
+    This function will create a CSV that contains information about the final states of each of the iterations.
+    '''
     all_final_state_agg = dict()
     for final_state, sum_count in final_states.items():
         all_final_state_agg[final_state] = sum_count / iter_count
@@ -84,6 +90,9 @@ def agg_count_to_csv(final_states: dict, cyclins: list, iter_count: int, filenam
 
 
 def state_seq_to_csv(state_seq_count: dict, filename: str):
+    '''
+    This function will create a CSV that contains information about the correctness of each of the iterations.
+    '''
     df_as_list = list()
     for start_state, state_seq in state_seq_count.items():
         df_as_list.append(
@@ -314,7 +323,7 @@ def double_perturb_details(
 
 def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt: int):
     '''
-    This function is the main function responsible for performing the simulations and gathering data on the success of each model.
+    This function is the main function responsible for performing the simulations and gathering data on the success of each model. It will perform these calculations and place them in a csv. 
     '''
     avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(
         state_calc_obj=state_calc_obj, iter_count=it_cnt, multi_process=True
