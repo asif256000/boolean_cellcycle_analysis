@@ -1,5 +1,5 @@
 import multiprocessing as mp
-import os
+import os, sys
 from pathlib import Path
 from time import time
 
@@ -341,8 +341,11 @@ def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt
 
 if __name__ == "__main__":
     start_time = time()
+    if len(sys.argv) != 6:
+        print("Incorrect format. Use: python async_perturb_test.py <model_name> <filter_states> <custom_state> <single_it_count> <double_it_count>")
+        exit(0)
     #Change this variable to change the model
-    organism = "model01"
+    organism = sys.argv[1]
 
     #Import model01 data
     if organism.lower() == "model01":
@@ -380,6 +383,10 @@ if __name__ == "__main__":
 
         target_ix = 1
 
+    else:
+        print("Model not found. Use one of the following models: model01, model02, model03.")
+        exit(0)
+
     #Dictionary containing parameters that can be changed
     calc_params = {
         "cyclins": cyclins,  # Input according to the organism passed
@@ -402,7 +409,7 @@ if __name__ == "__main__":
     }
 
     #Enable to use filter states
-    filter_states = False
+    filter_states = bool(sys.argv[2].capitalize() == "True")
 
     working_graph = modified_graph
     cell_state_calc = CellCycleStateCalculation(input_json=calc_params)
@@ -414,15 +421,15 @@ if __name__ == "__main__":
         cell_state_calc.set_starting_state(filtered_start_states)
 
     #Enable to use a custom starting state
-    fixed_start_states = False
+    fixed_start_states = bool(sys.argv[3].capitalize() == "True")
 
     if fixed_start_states:
         cell_state_calc.set_starting_state(custom_start_states)
 
     #Change this variable to change the amount of single iterations or the amount of times a random edge will be changed
-    single_it_cnt = 10
+    single_it_cnt = int(sys.argv[4])
     #Change this variable to change the amount of double iterations or the amount of times two random edges will be changed
-    double_it_cnt = 20
+    double_it_cnt = int(sys.argv[5])
 
     print(
         f"Initializing execution for {organism=}, with {filter_states=}, {fixed_start_states=}, {single_it_cnt=}, {double_it_cnt=}..."
