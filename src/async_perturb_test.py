@@ -119,6 +119,9 @@ def get_states_with_max_count(nodes: list, states_count: dict) -> tuple[int, str
 
 
 def write_perturb_data(perurbation_data: list, df_cols: list, graph_img_path: Path, file_path: Path):
+    '''
+    This function handles writing all the perturbation data to an Excel file.
+    '''
     perturb_details_df = pd.DataFrame(perurbation_data, columns=df_cols)
 
     with pd.ExcelWriter(file_path, engine="xlsxwriter") as df_writer:
@@ -147,6 +150,9 @@ def single_graph_execution(
     iterations: int,
     mp: bool = True,
 ):
+    '''
+    This function calculates the score for a given graph.
+    '''
     state_calc_obj.set_custom_connected_graph(graph=current_graph, graph_identifier=graph_mod)
 
     avg_graph_score, final_state_sum, state_seq_type = score_states_multiprocess(
@@ -168,6 +174,11 @@ def single_perturb_details(
     cyclins: list,
     iter_count: int,
 ):
+    '''
+    Main function for handling perturbations.
+    '''
+
+    #Create an image of the graph
     graph_image_folder = Path("figures")
     if not graph_image_folder.is_dir():
         graph_image_folder.mkdir(parents=True, exist_ok=True)
@@ -199,6 +210,7 @@ def single_perturb_details(
         ]
     )
 
+    #Cycle through perturbations and calculate data for each
     mp_args = [
         (state_calc_obj, double_perturb_graph, graph_mod_id, cyclins, iter_count)
         for double_perturb_graph, graph_mod_id in single_perturbation_generator(
@@ -222,6 +234,7 @@ def single_perturb_details(
             ]
         )
 
+    #Write perturb data to a file
     data_folder = Path("other_results", "perturbs")
     if not data_folder.is_dir():
         data_folder.mkdir(parents=True, exist_ok=True)
