@@ -20,7 +20,8 @@ class Input:
         root.rowconfigure(0, weight=1)
        
         self.model = StringVar()
-        model_entry = ttk.Entry(mainframe, width=15, textvariable=self.model)
+        model_entry = ttk.Combobox(mainframe, width=15, textvariable=self.model, values=("model01", "model02", "model03"), state='readonly')
+        model_entry.set("model01")
         model_entry.grid(column=2, row=1, sticky=(W, E))
         ttk.Label(mainframe, text="Represents the model to use. Available models: model01, model02 and model03.").grid(column=3, row=1, sticky=W)
 
@@ -55,8 +56,12 @@ class Input:
             self.filter.set(True)
         if self.custom.get():
             self.custom.set(True)
-        print(f"python async_perturb_test.py {self.model.get()} {self.filter.get()} {self.custom.get()} {self.singleit.get()} {self.doubleit.get()}")
-        os.system(f"python async_perturb_test.py {self.model.get()} {self.filter.get()} {self.custom.get()} {self.singleit.get()} {self.doubleit.get()}")
+        root.destroy()
+        try:
+            print(f"python async_perturb_test.py {self.model.get()} {self.filter.get()} {self.custom.get()} {self.singleit.get()} {self.doubleit.get()}")
+            os.system(f"python async_perturb_test.py {self.model.get()} {self.filter.get()} {self.custom.get()} {self.singleit.get()} {self.doubleit.get()}")
+        except:
+            print("ERROR: Incorrect inputs. Make sure you use integers.")
         exit(0)
 
 root = Tk()
