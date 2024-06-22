@@ -1,5 +1,5 @@
 import multiprocessing as mp
-import os, sys
+import os, sys, argparse
 from pathlib import Path
 from time import time
 
@@ -354,11 +354,16 @@ def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt
 
 if __name__ == "__main__":
     start_time = time()
-    if len(sys.argv) != 6:
-        print("Incorrect format. Use: python async_perturb_test.py <model_name> <filter_states> <custom_state> <single_it_count> <double_it_count>")
-        exit(0)
+    #Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('organism', choices=['model01', 'model02', 'model03'], help='The model to use. Available models: model01, model02 and model03.')
+    parser.add_argument('single_it', type=int, help='The number of single iterations the program should run.')
+    parser.add_argument('double_it', type=int, help='The number of double iterations the program should run.')
+    parser.add_argument('-f', action='store_true', help='Enables filter states.')
+    parser.add_argument('-c', action='store_true', help='Enable to use custom states.')
+    namespace = parser.parse_args()
     #Change this variable to change the model
-    organism = sys.argv[1]
+    organism = namespace.organism
 
     #Import model01 data
     if organism.lower() == "model01":
@@ -422,7 +427,7 @@ if __name__ == "__main__":
     }
 
     #Enable to use filter states
-    filter_states = bool(sys.argv[2].capitalize() == "True")
+    filter_states = namespace.f
 
     working_graph = modified_graph
     cell_state_calc = CellCycleStateCalculation(input_json=calc_params)
@@ -434,15 +439,15 @@ if __name__ == "__main__":
         cell_state_calc.set_starting_state(filtered_start_states)
 
     #Enable to use a custom starting state
-    fixed_start_states = bool(sys.argv[3].capitalize() == "True")
+    fixed_start_states = namespace.c
 
     if fixed_start_states:
         cell_state_calc.set_starting_state(custom_start_states)
 
     #Change this variable to change the amount of single iterations or the amount of times a random edge will be changed
-    single_it_cnt = int(sys.argv[4])
+    single_it_cnt = namespace.single_it
     #Change this variable to change the amount of double iterations or the amount of times two random edges will be changed
-    double_it_cnt = int(sys.argv[5])
+    double_it_cnt = namespace.double_it
 
     print(
         f"Initializing execution for {organism=}, with {filter_states=}, {fixed_start_states=}, {single_it_cnt=}, {double_it_cnt=}..."
