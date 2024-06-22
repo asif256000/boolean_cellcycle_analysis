@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import ttk
-import os
+import os, sys
 
 class Input:
     '''
@@ -52,14 +52,19 @@ class Input:
         '''
         Run async_perturb_test.py with the GUI inputs.
         '''
+        filter = ""
+        custom = ""
         if self.filter.get():
-            self.filter.set(True)
+            filter = "-f"
         if self.custom.get():
-            self.custom.set(True)
+            custom = "-c"
         root.destroy()
         try:
-            print(f"python async_perturb_test.py {self.model.get()} {self.filter.get()} {self.custom.get()} {self.singleit.get()} {self.doubleit.get()}")
-            os.system(f"python async_perturb_test.py {self.model.get()} {self.filter.get()} {self.custom.get()} {self.singleit.get()} {self.doubleit.get()}")
+            loc = "async_perturb_test.py"
+            if sys.argv[0] != "gui.py":
+                loc = "src/async_perturb_test.py"
+            print(f"python {loc} {self.model.get()} {filter} {custom} {self.singleit.get()} {self.doubleit.get()}")
+            os.system(f"python {loc} {self.model.get()} {filter} {custom} {self.singleit.get()} {self.doubleit.get()}")
         except:
             print("ERROR: Incorrect inputs. Make sure you use integers.")
         exit(0)
