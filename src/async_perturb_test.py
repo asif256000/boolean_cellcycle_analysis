@@ -1,5 +1,5 @@
 import multiprocessing as mp
-import os
+import os, sys, argparse
 from pathlib import Path
 from time import time
 
@@ -10,6 +10,7 @@ from utils import all_perturbation_generator, draw_graph_from_matrix, single_per
 
 NPROC = None
 
+#Functions
 
 def perturbation_mp_wrapper(args: tuple):
     state_calc_obj, graph, graph_mod_id, cyclins, iter_count = args
@@ -34,10 +35,14 @@ def mp_wrapper(state_calc_obj: CellCycleStateCalculation):
 
 
 def score_states_multiprocess(state_calc_obj: CellCycleStateCalculation, iter_count: int, multi_process: bool = True):
+    '''
+    This function will run the given amount of iterations on the given graph and calculate the average score, correctness, and final states.
+    '''
     graph_score_sum = 0
     all_final_state_sum = dict()
     all_state_seq_type = dict()
 
+    #Run the simulation
     if multi_process:
         with mp.Pool(processes=NPROC) as mp_pool:
             results = mp_pool.map(
@@ -50,6 +55,7 @@ def score_states_multiprocess(state_calc_obj: CellCycleStateCalculation, iter_co
             graph_score, final_state_dict, state_seq_type = state_calc_obj.generate_graph_score_and_final_states()
             results.append((graph_score, final_state_dict, state_seq_type))
 
+    #Calculate statistics from the results
     for graph_score, final_state_dict, state_seq_type in results:
         graph_score_sum += graph_score
         for final_state, state_count in final_state_dict.items():
@@ -66,6 +72,9 @@ def score_states_multiprocess(state_calc_obj: CellCycleStateCalculation, iter_co
 
 
 def agg_count_to_csv(final_states: dict, cyclins: list, iter_count: int, filename: str):
+    '''
+    This function will create a CSV that contains information about the final states of each of the iterations.
+    '''
     all_final_state_agg = dict()
     for final_state, sum_count in final_states.items():
         all_final_state_agg[final_state] = sum_count / iter_count
@@ -81,6 +90,9 @@ def agg_count_to_csv(final_states: dict, cyclins: list, iter_count: int, filenam
 
 
 def state_seq_to_csv(state_seq_count: dict, filename: str):
+    '''
+    This function will create a CSV that contains information about the correctness of each of the iterations.
+    '''
     df_as_list = list()
     for start_state, state_seq in state_seq_count.items():
         df_as_list.append(
@@ -107,6 +119,9 @@ def get_states_with_max_count(nodes: list, states_count: dict) -> tuple[int, str
 
 
 def write_perturb_data(perurbation_data: list, df_cols: list, graph_img_path: Path, file_path: Path):
+    '''
+    This function handles writing all the perturbation data to an Excel file.
+    '''
     perturb_details_df = pd.DataFrame(perurbation_data, columns=df_cols)
 
     with pd.ExcelWriter(file_path, engine="xlsxwriter") as df_writer:
@@ -135,6 +150,9 @@ def single_graph_execution(
     iterations: int,
     mp: bool = True,
 ):
+    '''
+    This function calculates the score for a given graph.
+    '''
     state_calc_obj.set_custom_connected_graph(graph=current_graph, graph_identifier=graph_mod)
 
     avg_graph_score, final_state_sum, state_seq_type = score_states_multiprocess(
@@ -156,6 +174,11 @@ def single_perturb_details(
     cyclins: list,
     iter_count: int,
 ):
+    '''
+    Main function for handling perturbations.
+    '''
+
+    #Create an image of the graph
     graph_image_folder = Path("figures")
     if not graph_image_folder.is_dir():
         graph_image_folder.mkdir(parents=True, exist_ok=True)
@@ -187,6 +210,7 @@ def single_perturb_details(
         ]
     )
 
+    #Cycle through perturbations and calculate data for each
     mp_args = [
         (state_calc_obj, double_perturb_graph, graph_mod_id, cyclins, iter_count)
         for double_perturb_graph, graph_mod_id in single_perturbation_generator(
@@ -210,6 +234,7 @@ def single_perturb_details(
             ]
         )
 
+    #Write perturb data to a file
     data_folder = Path("other_results", "perturbs")
     if not data_folder.is_dir():
         data_folder.mkdir(parents=True, exist_ok=True)
@@ -309,8 +334,10 @@ def double_perturb_details(
     ]
     write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
 
-
 def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt: int):
+    '''
+    This function is the main function responsible for performing the simulations and gathering data on the success of each model. It will perform these calculations and place them in a csv. 
+    '''
     avg_score, final_states_sum, state_seq_cnt = score_states_multiprocess(
         state_calc_obj=state_calc_obj, iter_count=it_cnt, multi_process=True
     )
@@ -323,11 +350,22 @@ def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt
     )
     print(f"Avg score for {organism} is {avg_score} for {it_cnt} iterations.")
 
+#Main method
 
 if __name__ == "__main__":
     start_time = time()
-    organism = "model01"
+    #Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('organism', choices=['model01', 'model02', 'model03'], help='The model to use. Available models: model01, model02 and model03.')
+    parser.add_argument('single_it', type=int, help='The number of single iterations the program should run.')
+    parser.add_argument('double_it', type=int, help='The number of double iterations the program should run.')
+    parser.add_argument('-f', action='store_true', help='Enables filter states.')
+    parser.add_argument('-c', action='store_true', help='Enable to use custom states.')
+    namespace = parser.parse_args()
+    #Change this variable to change the model
+    organism = namespace.organism
 
+    #Import model01 data
     if organism.lower() == "model01":
         from model01_inputs import (
             custom_start_states,
@@ -338,6 +376,8 @@ if __name__ == "__main__":
         )
 
         target_ix = 7
+
+    #Import model02 data
     elif organism.lower() == "model02":
         from model02_inputs import (
             custom_start_states,
@@ -348,6 +388,8 @@ if __name__ == "__main__":
         )
 
         target_ix = 1
+
+    #Import model03 data
     elif organism.lower() == "model03":
         from model03_inputs import (
             custom_start_states,
@@ -359,6 +401,11 @@ if __name__ == "__main__":
 
         target_ix = 1
 
+    else:
+        print("Model not found. Use one of the following models: model01, model02, model03.")
+        exit(0)
+
+    #Dictionary containing parameters that can be changed
     calc_params = {
         "cyclins": cyclins,  # Input according to the organism passed
         "organism": organism,  # Organism is passed as a string. Possible values: "model01", "model02", "model03"
@@ -379,7 +426,8 @@ if __name__ == "__main__":
         "max_updates_per_cycle": 150,  # Number of updates in every state cycle. The bigger this number is, the more likely that the final state reaches a steady state, but it also takes more time to compute
     }
 
-    filter_states = False
+    #Enable to use filter states
+    filter_states = namespace.f
 
     working_graph = modified_graph
     cell_state_calc = CellCycleStateCalculation(input_json=calc_params)
@@ -390,25 +438,29 @@ if __name__ == "__main__":
         )
         cell_state_calc.set_starting_state(filtered_start_states)
 
-    fixed_start_states = False
+    #Enable to use a custom starting state
+    fixed_start_states = namespace.c
 
     if fixed_start_states:
         cell_state_calc.set_starting_state(custom_start_states)
 
-    single_it_cnt = 500
-    double_it_cnt = 20
+    #Change this variable to change the amount of single iterations or the amount of times a random edge will be changed
+    single_it_cnt = namespace.single_it
+    #Change this variable to change the amount of double iterations or the amount of times two random edges will be changed
+    double_it_cnt = namespace.double_it
 
     print(
         f"Initializing execution for {organism=}, with {filter_states=}, {fixed_start_states=}, {single_it_cnt=}, {double_it_cnt=}..."
     )
 
+    #Create the graph 
     cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
 
     write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=single_it_cnt)
-    # write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=double_it_cnt)
+    #write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=double_it_cnt)
 
-    single_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, single_it_cnt)
-    double_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, double_it_cnt)
+    #single_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, single_it_cnt)
+    #double_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, double_it_cnt)
 
     end_time = time()
     print(
