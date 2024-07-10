@@ -17,12 +17,13 @@ The primary goal of this paper is to analyze all perturbations of the boolean ne
 
 1. Open the terminal and navigate to the project directory.
 2. Open `async_perturb_test.py` and edit `calc_params` for advanced settings. 
-3. Run the script: `python async_perturb_test.py <model_name> <filter_states> <custom_state> <single_it_count> <double_it_count>`.    
+3. Run the script: `python async_perturb_test.py <model_name> <-f> <-c> <single_it_count> <double_it_count>`.    
 `<model_name>` represents the model to use. Available models: model01, model02 and model03.  
-`<filter_states>` Set True to use filter states.  
-`<custom_state>` Set True to use custom states.  
+`<-f>` Add this flag to use filter states.  
+`<-c>` Add this flag to use custom states.  
 `<single_it_count>` Enter the number of single iterations the program should run.  
-`<double_it_count>` Enter the number of double iterations the program should run. 
+`<double_it_count>` Enter the number of double iterations the program should run.
+You can also run `python async_perturb_test.py -h` to check the help page.
 4. The output will be available as excel files in the folder `other_results`.
 
 ### GUI Usage
