@@ -359,21 +359,45 @@ def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt
 
 if __name__ == "__main__":
     start_time = time()
-    # Parse arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "organism",
-        choices=["model01", "model02", "model03"],
-        help="The model to use. Available models: model01, model02 and model03.",
-    )
-    parser.add_argument("single_it", type=int, help="The number of single iterations the program should run.")
-    parser.add_argument("double_it", type=int, help="The number of double iterations the program should run.")
-    parser.add_argument("-f", action="store_true", help="Enables filter states.")
-    parser.add_argument("-c", action="store_true", help="Enable to use custom states.")
-    namespace = parser.parse_args()
-    # Change this variable to change the model
-    organism = namespace.organism
 
+    # Parse arguments
+    parser = argparse.ArgumentParser("Cell Cycle Simulation")
+    parser.add_argument(
+        "--organism",
+        "-o",
+        default="model01",
+        choices=["model01", "model02", "model03"],
+        help="The model to use in simulation. Available models: model01, model02 and model03. Defaults to model01.",
+    )
+    parser.add_argument(
+        "--single_iter_cnt",
+        "-s",
+        default=4,
+        type=int,
+        help="The number of iterations the simulation should run for single perturbation. Defaults to 4.",
+    )
+    parser.add_argument(
+        "--double_iter_cnt",
+        "-d",
+        default=2,
+        type=int,
+        help="The number of iterations the simulation should run for double perturbation. Defaults to 2.",
+    )
+    parser.add_argument(
+        "--g1_only_start_states",
+        "-g1",
+        action="store_true",
+        help="Enables using only G1 states as start states for simulation, if the flag is present.",
+    )
+    parser.add_argument(
+        "--custom_start_states",
+        "-c",
+        action="store_true",
+        help="Enable to use custom start states as described in the input, if the flag is present.",
+    )
+    namespace = parser.parse_args()
+
+    organism = namespace.organism
     # Import model01 data
     if organism.lower() == "model01":
         from model01_inputs import (
@@ -385,7 +409,6 @@ if __name__ == "__main__":
         )
 
         target_ix = 7
-
     # Import model02 data
     elif organism.lower() == "model02":
         from model02_inputs import (
@@ -397,7 +420,6 @@ if __name__ == "__main__":
         )
 
         target_ix = 1
-
     # Import model03 data
     elif organism.lower() == "model03":
         from model03_inputs import (
@@ -409,10 +431,6 @@ if __name__ == "__main__":
         )
 
         target_ix = 1
-
-    else:
-        print("Model not found. Use one of the following models: model01, model02, model03.")
-        exit(0)
 
     # Dictionary containing parameters that can be changed
     calc_params = {
@@ -436,7 +454,7 @@ if __name__ == "__main__":
     }
 
     # Enable to use filter states
-    filter_states = namespace.f
+    filter_states = namespace.g1_only_start_states
 
     working_graph = modified_graph
     cell_state_calc = CellCycleStateCalculation(input_json=calc_params)
@@ -448,25 +466,22 @@ if __name__ == "__main__":
         cell_state_calc.set_starting_state(filtered_start_states)
 
     # Enable to use a custom starting state
-    fixed_start_states = namespace.c
+    fixed_start_states = namespace.custom_start_states
 
     if fixed_start_states:
         cell_state_calc.set_starting_state(custom_start_states)
 
-    # Change this variable to change the amount of single iterations or the amount of times a random edge will be changed
-    single_it_cnt = namespace.single_it
-    # Change this variable to change the amount of double iterations or the amount of times two random edges will be changed
-    double_it_cnt = namespace.double_it
+    single_it_cnt = namespace.single_iter_cnt
+    double_it_cnt = namespace.double_iter_cnt
 
     print(
         f"Initializing execution for {organism=}, with {filter_states=}, {fixed_start_states=}, {single_it_cnt=}, {double_it_cnt=}..."
     )
 
-    # Create the graph
+    # Set the graph in the primary module
     cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
 
     write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=single_it_cnt)
-    # write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=double_it_cnt)
 
     single_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, single_it_cnt)
     # double_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, double_it_cnt)
