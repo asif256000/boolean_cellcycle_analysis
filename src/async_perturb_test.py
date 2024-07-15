@@ -459,7 +459,7 @@ if __name__ == "__main__":
     write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=single_it_cnt)
     #write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=double_it_cnt)
 
-    #single_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, single_it_cnt)
+    single_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, single_it_cnt)
     #double_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, double_it_cnt)
 
     end_time = time()
