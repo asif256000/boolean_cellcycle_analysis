@@ -1,72 +1,54 @@
-import importlib
+# import importlib
+from argparse import Namespace
 from copy import deepcopy
 from random import choice, choices, shuffle
 
+from all_inputs import InputTemplate
 from log_module import logger
-
-model_specific_vars = {
-    "model01": {
-        "optimal_graph_score": 751,
-        "optimal_g1_graph_score": 2111,
-        "self_activation_flag": False,
-        "self_deactivation_flag": True,
-    },
-    "model02": {
-        "optimal_graph_score": 4171,
-        "optimal_g1_graph_score": 2111,
-        "self_activation_flag": True,
-        "self_deactivation_flag": True,
-    },
-    "model03": {
-        "optimal_graph_score": 4171,
-        "optimal_g1_graph_score": 2111,
-        "self_activation_flag": True,
-        "self_deactivation_flag": True,
-    },
-}
 
 
 class CellCycleStateCalculation:
     # initialize model specific global state
-    def __init__(self, input_json: dict) -> None:
-        self.__all_cyclins = input_json["cyclins"]
-        self.__organism = input_json["organism"]
+    def __init__(self, file_inputs: dict, model_specific_inputs: InputTemplate, user_inputs: Namespace) -> None:
+        self.__all_cyclins = model_specific_inputs.cyclins
+        self.__organism = user_inputs.organism
 
-        i = importlib.import_module("%s_inputs" % self.__organism)
-        self.__expected_final_state = i.expected_final_state
-        self.__all_final_states_to_ignore = i.all_final_states_to_ignore
-        self.__expected_cyclin_order = i.expected_cyclin_order
-        self.__g1_state_zero_cyclins = i.g1_state_zero_cyclins
-        self.__g1_state_one_cyclins = i.g1_state_one_cyclins
+        self.__expected_final_state = model_specific_inputs.expected_final_state
+        # Not used any more. Was used in initial iteration to ignore some final states
+        # from score calculation. Now all final states are considered.
+        # self.__all_final_states_to_ignore = model_inputs.all_final_states_to_ignore
+        self.__expected_cyclin_order = model_specific_inputs.expected_cyclin_order
+        self.__g1_state_zero_cyclins = model_specific_inputs.g1_state_zero_cyclins
+        self.__g1_state_one_cyclins = model_specific_inputs.g1_state_one_cyclins
 
-        self.__optimal_graph_score = model_specific_vars[self.__organism]["optimal_graph_score"]
-        self.__optimal_g1_graph_score = model_specific_vars[self.__organism]["optimal_g1_graph_score"]
-        self.__self_activation_flag = model_specific_vars[self.__organism]["self_activation_flag"]
-        self.__self_deactivation_flag = model_specific_vars[self.__organism]["self_deactivation_flag"]
+        self.__optimal_graph_score = model_specific_inputs.optimal_graph_score
+        self.__optimal_g1_graph_score = model_specific_inputs.g1_only_optimal_graph_score
+        self.__self_activation_flag = model_specific_inputs.rule_based_self_activation
+        self.__self_deactivation_flag = model_specific_inputs.rule_based_self_deactivation
+        self.__cell_cycle_activation_cyclin = model_specific_inputs.cell_cycle_activation_cyclin
         self.__sequence_penalty = self.__calculate_penalty()
 
         self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(self.__all_cyclins)}
 
-        self.__detailed_logs = input_json["detailed_logs"]
-        self.__hardcoded_self_loops = input_json["hardcoded_self_loops"]
-        self.__check_sequence = input_json["check_sequence"]
-        self.__g1_states_only_flag = input_json["g1_states_only"]
-        self.__view_state_table = input_json["view_state_table"]
-        self.__view_state_change_only = input_json["view_state_changes_only"]
-        self.__view_final_state_count_table = input_json["view_final_state_count_table"]
-        self.__async_update = input_json["async_update"]
-        self.__random_order_cyclin = input_json["random_order_cyclin"]
-        self.__complete_cycle = input_json["complete_cycle"]
-        self.__exp_cycle_detection = input_json["expensive_state_cycle_detection"]
-        self.__cell_cycle_activation_cyclin = input_json["cell_cycle_activation_cyclin"]
-        self.__max_iter_count = input_json["max_updates_per_cycle"]
+        self.__detailed_logs = file_inputs["detailed_logs"]
+        self.__hardcoded_self_loops = file_inputs["hardcoded_self_loops"]
+        self.__check_sequence = file_inputs["check_sequence"]
+        self.__g1_states_only_flag = file_inputs["g1_states_only"]
+        self.__view_state_table = file_inputs["view_state_table"]
+        self.__view_state_change_only = file_inputs["view_state_changes_only"]
+        self.__view_final_state_count_table = file_inputs["view_final_state_count_table"]
+        self.__async_update = file_inputs["async_update"]
+        self.__random_order_cyclin = file_inputs["random_order_cyclin"]
+        self.__complete_cycle = file_inputs["complete_cycle"]
+        self.__exp_cycle_detection = file_inputs["expensive_state_cycle_detection"]
+        self.__max_iter_count = file_inputs["max_updates_per_cycle"]
 
         logger.set_ignore_details_flag(flag=not self.__detailed_logs)
         self.__start_states = self.__get_all_possible_starting_states()
         self.__g1_start_states = self.__get_all_g1_states()
 
         logger.debug(f"Class state: {self}")
-        logger.debug(f"Inputs: {input_json}")
+        logger.debug(f"Inputs: {file_inputs=}, {user_inputs=}")
 
     def __repr__(self) -> str:
         return (
