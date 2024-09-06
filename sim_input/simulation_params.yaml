@@ -1,0 +1,24 @@
+# Generates large log files with detailed execution information
+detailed_logs: false
+# Hardcoded self loops for the graph. If this is True, self-loops in the input is followed, otherwise self-loops are calculated at runtime according to incoming and outgoing edges
+hardcoded_self_loops: true
+# Checks if the state sequence follows the expected order or not
+check_sequence: true
+# Start states are fixed to G1 states only if this is True (G1 states are defined in the input file)
+g1_states_only: false
+# Prints the state table in the log file for each iteration
+view_state_table: false
+# Prints only the state changes and states where there is no change is ignored in the log file
+view_state_changes_only: true
+# Prints the final state count table in the log file
+view_final_state_count_table: true
+# If True, the state of the nodes are updated asynchronously, otherwise the state of the nodes are updated synchronously
+async_update: true
+# If True, the cyclins are updated in a random order, otherwise the cyclins are updated in the order of the cyclins list
+random_order_cyclin: true
+# If True, the order of cyclin update, even when randomly picked, always picks all the nodes in the cyclin before picking the same cyclin again
+complete_cycle: false
+# Recommended to keep True. If True, the state cycle detection is done by checking for cycle of any length in the end of state sequence, otherwise the state cycle detection is done by comparing the last two states only
+expensive_state_cycle_detection: true
+# Number of updates in every state cycle. The bigger this number is, the more likely that the final state reaches a true steady state, but it also takes more time to compute. So this needs to be adjusted according to the size of the network
+max_updates_per_cycle: 150
