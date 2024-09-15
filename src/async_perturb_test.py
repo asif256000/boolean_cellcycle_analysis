@@ -470,6 +470,7 @@ if __name__ == "__main__":
             cell_state_calc, organism, working_graph, "Original Graph", model_inputs.cyclins, double_it_cnt
         )
 
+    print(f"Inputs: {namespace}")
     end_time = time()
     print(
         f"Execution completed in {end_time - start_time} seconds for {single_it_cnt=}, {double_it_cnt=} for {organism} cell cycle."
