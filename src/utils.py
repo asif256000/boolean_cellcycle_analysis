@@ -9,8 +9,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from input_testing import cyclins, modified_graph, original_graph
-
 
 def all_perturbation_recursive_generator(graph: list[list], start_pos: int = 0):
     possible_weights = {-1, 0, 1}

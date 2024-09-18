@@ -1,12 +1,13 @@
 import argparse
 import multiprocessing as mp
 import os
-import sys
 from pathlib import Path
 from time import time
 
 import pandas as pd
+import yaml
 
+from all_inputs import ModelAInputs, ModelBInputs, ModelCInputs
 from state_calc_clean import CellCycleStateCalculation
 from utils import all_perturbation_generator, draw_graph_from_matrix, single_perturbation_generator
 
@@ -101,7 +102,7 @@ def state_seq_to_csv(state_seq_count: dict, filename: str):
         df_as_list.append(
             list(start_state) + [state_seq["correct"], state_seq["incorrect"], state_seq["did_not_start"]]
         )
-    df = pd.DataFrame(df_as_list, columns=[cyclins + ["correct", "incorrect", "did_not_start"]])
+    df = pd.DataFrame(df_as_list, columns=[model_inputs.cyclins + ["correct", "incorrect", "did_not_start"]])
     csv_folder = Path("other_results", "state_seq")
     if not csv_folder.is_dir():
         csv_folder.mkdir(parents=True, exist_ok=True)
@@ -338,7 +339,7 @@ def double_perturb_details(
     write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
 
 
-def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt: int):
+def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt: int, organism: str):
     """
     This function is the main function responsible for performing the simulations and gathering data on the success of each model. It will perform these calculations and place them in a csv.
     """
@@ -348,20 +349,23 @@ def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt
     state_seq_to_csv(state_seq_count=state_seq_cnt, filename=f"state_seq_{it_cnt}_{organism}.csv")
     agg_count_to_csv(
         final_states=final_states_sum,
-        cyclins=cyclins,
+        cyclins=model_inputs.cyclins,
         iter_count=it_cnt,
         filename=f"final_state_avg_{it_cnt}_{organism}.csv",
     )
     print(f"Avg score for {organism} is {avg_score} for {it_cnt} iterations.")
 
 
-# Main method
-
-if __name__ == "__main__":
-    start_time = time()
-
+def parse_arguments(parser: argparse.ArgumentParser) -> argparse.Namespace:
     # Parse arguments
-    parser = argparse.ArgumentParser("Cell Cycle Simulation")
+    parser.add_argument(
+        "--run_options",
+        "-r",
+        default="original",
+        choices=["original", "single", "double"],
+        nargs="+",
+        help="The type of simulation to run. Defaults to execution of original graph (`original`) only. Other options are `single` and `double` for single and double perturbations respectively.",
+    )
     parser.add_argument(
         "--organism",
         "-o",
@@ -387,7 +391,7 @@ if __name__ == "__main__":
         "--g1_only_start_states",
         "-g1",
         action="store_true",
-        help="Enables using only G1 states as start states for simulation, if the flag is present.",
+        help="Enables using only G1 states as start states for simulation, if the flag is present. Do not enable this if custom start states are used.",
     )
     parser.add_argument(
         "--custom_start_states",
@@ -395,97 +399,78 @@ if __name__ == "__main__":
         action="store_true",
         help="Enable to use custom start states as described in the input, if the flag is present.",
     )
+    parser.add_argument(
+        "--input_file",
+        "-i",
+        default="simulation_params.yaml",
+        type=str,
+        help="The input file name (yaml format) to be used for the simulation. If not provided, the default input file (simulation_params.yaml) will be used.",
+    )
     namespace = parser.parse_args()
+    return namespace
+
+
+# Main method
+if __name__ == "__main__":
+    start_time = time()
+
+    arg_parser_obj = argparse.ArgumentParser("Cell Cycle Simulation")
+    namespace = parse_arguments(arg_parser_obj)
 
     organism = namespace.organism
-    # Import model01 data
-    if organism.lower() == "model01":
-        from model01_inputs import (
-            custom_start_states,
-            cyclins,
-            g1_state_one_cyclins,
-            g1_state_zero_cyclins,
-            modified_graph,
-        )
+    input_models = {"model01": ModelAInputs(), "model02": ModelBInputs(), "model03": ModelCInputs()}
+    model_inputs = input_models.get(organism)
 
-        target_ix = 7
-    # Import model02 data
-    elif organism.lower() == "model02":
-        from model02_inputs import (
-            custom_start_states,
-            cyclins,
-            g1_state_one_cyclins,
-            g1_state_zero_cyclins,
-            modified_graph,
-        )
+    simulation_input_file = Path("sim_input", namespace.input_file)
+    with open(simulation_input_file, "r") as sim_params_file:
+        sim_params = yaml.safe_load(sim_params_file)
 
-        target_ix = 1
-    # Import model03 data
-    elif organism.lower() == "model03":
-        from model03_inputs import (
-            custom_start_states,
-            cyclins,
-            g1_state_one_cyclins,
-            g1_state_zero_cyclins,
-            modified_graph,
-        )
-
-        target_ix = 1
-
-    # Dictionary containing parameters that can be changed
-    calc_params = {
-        "cyclins": cyclins,  # Input according to the organism passed
-        "organism": organism,  # Organism is passed as a string. Possible values: "model01", "model02", "model03"
-        "detailed_logs": False,  # Generates large log files with detailed execution information
-        "hardcoded_self_loops": True,  # Hardcoded self loops for the graph. If this is True, self-loops in the input is followed, otherwise self-loops are calculated at runtime according to incoming and outgoing edges
-        "check_sequence": True,  # Checks if the state sequence follows the expected order or not
-        "g1_states_only": False,  # Start states are fixed to G1 states only if this is True (G1 states are defined in the input file)
-        "view_state_table": False,  # Prints the state table in the log file for each iteration
-        "view_state_changes_only": True,  # Prints only the state changes and states where there is no change is ignored in the log file
-        "view_final_state_count_table": True,  # Prints the final state count table in the log file
-        "async_update": True,  # If True, the state of the nodes are updated asynchronously, otherwise the state of the nodes are updated synchronously
-        "random_order_cyclin": True,  # If True, the cyclins are updated in a random order, otherwise the cyclins are updated in the order of the cyclins list
-        "complete_cycle": False,  # If True, the order of cyclin update, even when randomly picked, always picks all the nodes in the cyclin before picking the same cyclin again
-        "expensive_state_cycle_detection": True,  # Recommended to keep True. If True, the state cycle detection is done by checking for cycle of any length in the end of state sequence, otherwise the state cycle detection is done by comparing the last two states only
-        "cell_cycle_activation_cyclin": cyclins[
-            target_ix
-        ],  # The cyclin that is used to detect the cell cycle activation. If this is never activated, the cell cycle is categorized as 'Did not Start'
-        "max_updates_per_cycle": 150,  # Number of updates in every state cycle. The bigger this number is, the more likely that the final state reaches a steady state, but it also takes more time to compute
-    }
+    working_graph = model_inputs.modified_graph
+    cell_state_calc = CellCycleStateCalculation(
+        file_inputs=sim_params, model_specific_inputs=model_inputs, user_inputs=namespace
+    )
 
     # Enable to use filter states
     filter_states = namespace.g1_only_start_states
-
-    working_graph = modified_graph
-    cell_state_calc = CellCycleStateCalculation(input_json=calc_params)
-
-    if filter_states:
-        filtered_start_states = cell_state_calc.filter_start_states(
-            one_cyclins=g1_state_one_cyclins, zero_cyclins=g1_state_zero_cyclins
-        )
-        cell_state_calc.set_starting_state(filtered_start_states)
-
     # Enable to use a custom starting state
     fixed_start_states = namespace.custom_start_states
 
+    if filter_states and fixed_start_states:
+        raise ValueError("Cannot use both filter states and custom start states at the same time.")
+
+    if filter_states:
+        filtered_start_states = cell_state_calc.filter_start_states(
+            one_cyclins=model_inputs.g1_state_one_cyclins, zero_cyclins=model_inputs.g1_state_zero_cyclins
+        )
+        cell_state_calc.set_starting_state(filtered_start_states)
+
     if fixed_start_states:
-        cell_state_calc.set_starting_state(custom_start_states)
+        cell_state_calc.set_starting_state(model_inputs.custom_start_states)
 
     single_it_cnt = namespace.single_iter_cnt
     double_it_cnt = namespace.double_iter_cnt
 
     print(
-        f"Initializing execution for {organism=}, with {filter_states=}, {fixed_start_states=}, {single_it_cnt=}, {double_it_cnt=}..."
+        f"Initializing '{', '.join(namespace.run_options)}' execution for {organism=}, with {filter_states=}, {fixed_start_states=}, {single_it_cnt=}, {double_it_cnt=}..."
     )
 
     # Set the graph in the primary module
     cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
 
-    write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=single_it_cnt)
+    if "original" in namespace.run_options:
+        write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=single_it_cnt, organism=organism)
 
-    single_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, single_it_cnt)
-    # double_perturb_details(cell_state_calc, organism, working_graph, "Original Graph", cyclins, double_it_cnt)
+    if "single" in namespace.run_options:
+        single_perturb_details(
+            cell_state_calc, organism, working_graph, "Original Graph", model_inputs.cyclins, single_it_cnt
+        )
 
+    if "double" in namespace.run_options:
+        double_perturb_details(
+            cell_state_calc, organism, working_graph, "Original Graph", model_inputs.cyclins, double_it_cnt
+        )
+
+    print(f"Inputs: {namespace}")
     end_time = time()
     print(
         f"Execution completed in {end_time - start_time} seconds for {single_it_cnt=}, {double_it_cnt=} for {organism} cell cycle."
