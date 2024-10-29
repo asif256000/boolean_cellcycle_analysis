@@ -3,7 +3,7 @@ import pandas as pd
 # read by default 1st sheet of an excel file
 PRINT_SCORE = False
 DB_DATA_FILE = "all_data_25_07_23.xlsx"
-EXCEL_TO_CHECK = "EXCEL_FILE_TO_CHECK"  # ONLY ENTER FILE NAME, do not enter .xlsx or other extensions
+EXCEL_TO_CHECK = "model03_single_perturb_it100.xlsx"  # Replace with file name
 
 # Source of truth DB compared against from SIGNOR database
 # https://signor.uniroma2.it/
@@ -128,14 +128,14 @@ def map_cols_to_dbContext(value):
 
 if __name__ == "__main__":
 
-    model_perturb_data = pd.read_excel("scan/%s.xlsx" % EXCEL_TO_CHECK)
+    model_perturb_data = pd.read_excel(EXCEL_TO_CHECK)
 
     # for the single perturb mode, both of the below dictionaries mean the same
 
     perturbs_result = {}  # holds True/False if a line item in the perturb excel sheet is good or not
-    cols = ["Graph Modification ID"] + (["Graph Score"] if PRINT_SCORE else [])
+    cols = ["Perturbation ID"] + (["Graph Score"] if PRINT_SCORE else [])
     for row in model_perturb_data[cols].to_dict("records"):
-        perturb = row["Graph Modification ID"]
+        perturb = row["Perturbation ID"]
         if PRINT_SCORE:
             score = row["Graph Score"]
         db_context = []
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         % (len(list(filter(lambda x: x["valid"], perturbs_result.values()))), len(perturbs_result.values()))
     )
 
-    model_perturb_data["Exists in DB"] = model_perturb_data["Graph Modification ID"].apply(map_cols_to_isValid)
-    model_perturb_data["DB Context"] = model_perturb_data["Graph Modification ID"].apply(map_cols_to_dbContext)
+    model_perturb_data["Exists in DB"] = model_perturb_data["Perturbation ID"].apply(map_cols_to_isValid)
+    model_perturb_data["DB Context"] = model_perturb_data["Perturbation ID"].apply(map_cols_to_dbContext)
 
     model_perturb_data.to_excel("added_%s.xlsx" % EXCEL_TO_CHECK)

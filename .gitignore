@@ -173,3 +173,5 @@ figures/*
 *.pptx
 *.docx
 src/test.py
+src/other_results
+src/results
