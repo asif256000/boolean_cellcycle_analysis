@@ -11,23 +11,6 @@ import seaborn as sns
 perturbation_format_string = "{src_node}-to-{dest_node} -> {old_weight}to{new_weight}"
 
 
-def all_perturbation_recursive_generator(graph: list[list], start_pos: int = 0):
-    possible_weights = {-1, 0, 1}
-    node_len = len(graph)
-    for i in range(start_pos, node_len**2):
-        ix_x1 = i // node_len
-        ix_y1 = i % node_len
-        if ix_x1 == ix_y1:
-            continue
-        for possible_pertubs in possible_weights - {graph[ix_x1][ix_y1]}:
-            cc1_graph = deepcopy(graph)
-            cc1_graph[ix_x1][ix_y1] = possible_pertubs
-            x = all_perturbation_recursive_generator(graph=cc1_graph, start_pos=i + 1)
-            yield x
-        if ix_x1 == node_len - 1 and ix_y1 == node_len - 1:
-            raise StopIteration
-
-
 def all_perturbation_generator(nodes: list, graph: list[list], perturb_self_loops: bool = False):
     possible_weights = {-1, 0, 1}
     node_len = len(graph)
@@ -253,34 +236,3 @@ if __name__ == "__main__":
         plot_title="Single Perturbation Async Scores",
         vertical_line_at=list(filtered_data.keys()).index("OG Graph"),
     )
-
-    # nodes = ["Cln3", "MBF", "SBF", "Cln1,2", "Cdh1"]
-    # edges = [
-    #     [0, -1, 1, -1, 0],
-    #     [1, 0, 1, 0, 0],
-    #     [0, -1, 1, 0, 0],
-    #     [1, 0, 1, 0, -1],
-    #     [1, -1, 0, 0, 0],
-    # ]
-    # i = 0
-    # for pert_graph, graph_mod in single_perturbation_generator(nodes=nodes, graph=edges):
-    #     print(f"{pert_graph=}, {graph_mod=}")
-    #     i += 1
-    # print(i)
-    # draw_graph_from_matrix(cyclins, original_graph, graph_img_path=Path("figures", "original_graph.png"))
-    # draw_graph_from_matrix(cyclins, modified_graph, graph_img_path=Path("figures", "modified_graph.png"))
-    # for mod_graph, pert_id in all_perturbation_generator(nodes=nodes, graph=edges):
-    #     print(f"{pert_id=}")
-    #     for m in mod_graph:
-    #         print(m)
-    #     print(f"{i=}")
-    #     i += 1
-
-    # f_list = list(np.random.randint(low=5, high=15, size=50))
-    # p1 = generate_histogram(f_list, "plot1", "First Diagram")
-
-    # f_list = list(np.random.randint(low=5, high=15, size=50))
-    # p2 = generate_histogram(f_list, "plot2", "Second Diagram")
-
-    # fig_names = ["plot1", "plot2"]
-    # combine_subplots(filename_list=fig_names)
