@@ -5,9 +5,10 @@ from pathlib import Path
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import networkx as nx
-import numpy as np
 import pandas as pd
 import seaborn as sns
+
+perturbation_format_string = "{src_node}-to-{dest_node} -> {old_weight}to{new_weight}"
 
 
 def all_perturbation_recursive_generator(graph: list[list], start_pos: int = 0):
@@ -40,16 +41,24 @@ def all_perturbation_generator(nodes: list, graph: list[list], perturb_self_loop
             cc1_graph = deepcopy(graph)
             cc1_graph[ix_x1][ix_y1] = possible_perturbs1
             for j in range(i + 1, node_len**2):
+                source, destination = nodes[ix_y1], nodes[ix_x1]
+                old_wt, new_wt = graph[ix_x1][ix_y1], possible_perturbs1
                 perturb_tracker_list = [
-                    f"{nodes[ix_y1]}-to-{nodes[ix_x1]} -> {graph[ix_x1][ix_y1]}to{possible_perturbs1}"
+                    perturbation_format_string.format(
+                        src_node=source, dest_node=destination, old_weight=old_wt, new_weight=new_wt
+                    )
                 ]
                 ix_x2 = j // node_len
                 ix_y2 = j % node_len
                 if not perturb_self_loops and ix_x2 == ix_y2:
                     continue
                 for possible_perturbs2 in possible_weights - {cc1_graph[ix_x2][ix_y2]}:
+                    sec_source, sec_destination = nodes[ix_y2], nodes[ix_x2]
+                    sec_old_wt, sec_new_wt = cc1_graph[ix_x2][ix_y2], possible_perturbs2
                     perturb_tracker_list.append(
-                        f"{nodes[ix_y2]}-to-{nodes[ix_x2]} -> {graph[ix_x2][ix_y2]}to{possible_perturbs2}"
+                        perturbation_format_string.format(
+                            src_node=sec_source, dest_node=sec_destination, old_weight=sec_old_wt, new_weight=sec_new_wt
+                        )
                     )
                     cc2_graph = deepcopy(cc1_graph)
                     cc2_graph[ix_x2][ix_y2] = possible_perturbs2
@@ -69,7 +78,11 @@ def single_perturbation_generator(nodes: list, graph: list[list], perturb_self_l
         for possible_perturbs in possible_weights - {graph[ix_x][ix_y]}:
             cc_graph = deepcopy(graph)
             cc_graph[ix_x][ix_y] = possible_perturbs
-            yield cc_graph, f"{nodes[ix_y]}-to-{nodes[ix_x]} -> {graph[ix_x][ix_y]}to{possible_perturbs}"
+            source, destination = nodes[ix_y], nodes[ix_x]
+            old_wt, new_wt = graph[ix_x][ix_y], possible_perturbs
+            yield cc_graph, perturbation_format_string.format(
+                src_node=source, dest_node=destination, old_weight=old_wt, new_weight=new_wt
+            )
 
 
 def generate_histogram(freq_list: list, img_filename: str, plot_title: str, vertical_line_at: int = None):
@@ -147,7 +160,13 @@ def get_all_edges(all_paths: list[list]) -> list:
     return graph_edges
 
 
-def draw_graph_from_matrix(nodes: list, matrix: list[list], graph_img_path: Path = Path("interaction_graph")):
+def draw_graph_from_matrix(organism: str, nodes: list, matrix: list[list]):
+    graph_image_folder = Path("figures")
+    if not graph_image_folder.is_dir():
+        graph_image_folder.mkdir(parents=True, exist_ok=True)
+    graph_image_file = f"working_graph_{organism}_{int(time.time())}.png"
+    graph_img_path = graph_image_folder / graph_image_file
+
     G = nx.MultiDiGraph()
 
     color_map = {1: "green", -1: "red"}
@@ -182,6 +201,8 @@ def draw_graph_from_matrix(nodes: list, matrix: list[list], graph_img_path: Path
     plt.title(graph_img_path.stem)
     plt.savefig(graph_img_path, bbox_inches="tight")
     plt.close()
+
+    return graph_img_path
 
 
 def flatten_double_perturb_freq(scores: dict[str, int]):

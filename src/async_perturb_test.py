@@ -1,8 +1,8 @@
 import argparse
 import multiprocessing as mp
 import os
+import time
 from pathlib import Path
-from time import time
 
 import pandas as pd
 import yaml
@@ -12,8 +12,6 @@ from state_calc_clean import CellCycleStateCalculation
 from utils import all_perturbation_generator, draw_graph_from_matrix, single_perturbation_generator
 
 NPROC = None
-
-# Functions
 
 
 def perturbation_mp_wrapper(args: tuple):
@@ -122,20 +120,6 @@ def get_states_with_max_count(nodes: list, states_count: dict) -> tuple[int, str
     return max_final_state_count, " | ".join(map(str, max_states))
 
 
-def write_perturb_data(perurbation_data: list, df_cols: list, graph_img_path: Path, file_path: Path):
-    """
-    This function handles writing all the perturbation data to an Excel file.
-    """
-    perturb_details_df = pd.DataFrame(perurbation_data, columns=df_cols)
-
-    with pd.ExcelWriter(file_path, engine="xlsxwriter") as df_writer:
-        perturb_details_df.to_excel(df_writer, sheet_name="Details", index=False)
-        workbook = df_writer.book
-        worksheet = workbook.add_worksheet("Graph")
-        worksheet.insert_image("A2", graph_img_path)
-    os.remove(graph_img_path)
-
-
 def avg_seq_types(seq_types: dict):
     avg_seq_types = {"correct": 0, "incorrect": 0, "did_not_start": 0}
 
@@ -182,13 +166,7 @@ def single_perturb_details(
     Main function for handling perturbations.
     """
 
-    # Create an image of the graph
-    graph_image_folder = Path("figures")
-    if not graph_image_folder.is_dir():
-        graph_image_folder.mkdir(parents=True, exist_ok=True)
-    graph_image_file = f"working_graph_{organ}_{int(time())}.png"
-    graph_image_path = graph_image_folder / graph_image_file
-    draw_graph_from_matrix(nodes=cyclins, matrix=starting_graph, graph_img_path=graph_image_path)
+    graph_image_path = draw_graph_from_matrix(organism=organ, nodes=cyclins, matrix=starting_graph)
 
     perturb_details = list()
     graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
@@ -239,23 +217,8 @@ def single_perturb_details(
         )
 
     # Write perturb data to a file
-    data_folder = Path("other_results", "perturbs")
-    if not data_folder.is_dir():
-        data_folder.mkdir(parents=True, exist_ok=True)
     data_file = f"{organ}_single_perturb_it{iter_count}.xlsx"
-    data_path = data_folder / data_file
-    data_cols = [
-        "Perturbation ID",
-        "Normalized Graph Score",
-        "Absolute Graph Score",
-        "Steady State Count",
-        "Largest Attractor Size",
-        "Most Frequent Steady State(s)",
-        "Correct (%)",
-        "Incorrect (%)",
-        "Did not Start (%)",
-    ]
-    write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
+    write_perturb_data(perturb_details, graph_image_path, data_file)
 
 
 def double_perturb_details(
@@ -266,12 +229,7 @@ def double_perturb_details(
     cyclins: list,
     iter_count: int,
 ):
-    graph_image_folder = Path("figures")
-    if not graph_image_folder.is_dir():
-        graph_image_folder.mkdir(parents=True, exist_ok=True)
-    graph_image_file = f"working_graph_{organ}_{int(time())}.png"
-    graph_image_path = graph_image_folder / graph_image_file
-    draw_graph_from_matrix(nodes=cyclins, matrix=starting_graph, graph_img_path=graph_image_path)
+    graph_image_path = draw_graph_from_matrix(organism=organ, nodes=cyclins, matrix=starting_graph)
 
     perturb_details = list()
     graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
@@ -320,12 +278,15 @@ def double_perturb_details(
             ]
         )
 
-    data_folder = Path("other_results", "perturbs")
-    if not data_folder.is_dir():
-        data_folder.mkdir(parents=True, exist_ok=True)
     data_file = f"{organ}_double_perturb_it{iter_count}.xlsx"
-    data_path = data_folder / data_file
-    data_cols = [
+    write_perturb_data(perturb_details, graph_image_path, data_file)
+
+
+def write_perturb_data(perurbation_data: list, graph_img_path: Path, filename: str):
+    """
+    This function handles writing all the perturbation data to an Excel file.
+    """
+    df_cols = [
         "Perturbation ID",
         "Normalized Graph Score",
         "Absolute Graph Score",
@@ -336,7 +297,18 @@ def double_perturb_details(
         "Incorrect (%)",
         "Did not Start (%)",
     ]
-    write_perturb_data(perturb_details, data_cols, graph_image_path, data_path)
+    perturb_details_df = pd.DataFrame(perurbation_data, columns=df_cols)
+
+    data_folder = Path("other_results", "perturbs")
+    if not data_folder.is_dir():
+        data_folder.mkdir(parents=True, exist_ok=True)
+    file_path = data_folder / filename
+    with pd.ExcelWriter(file_path, engine="xlsxwriter") as df_writer:
+        perturb_details_df.to_excel(df_writer, sheet_name="Details", index=False)
+        workbook = df_writer.book
+        worksheet = workbook.add_worksheet("Graph")
+        worksheet.insert_image("A2", graph_img_path)
+    os.remove(graph_img_path)
 
 
 def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt: int, organism: str):
@@ -356,15 +328,26 @@ def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt
     print(f"Avg score for {organism} is {avg_score} for {it_cnt} iterations.")
 
 
+def get_best_perturbation(curr_results: pd.DataFrame) -> pd.Series:
+    """
+    This function will return the best perturbation from the given results.
+    """
+    if "Exists in DB" in curr_results.columns:
+        curr_results = curr_results[curr_results["Exists in DB"] == True]
+    best_perturb = curr_results.loc[curr_results["Normalized Graph Score"].idxmin()]
+
+    return best_perturb
+
+
 def parse_arguments(parser: argparse.ArgumentParser) -> argparse.Namespace:
     # Parse arguments
     parser.add_argument(
         "--run_options",
         "-r",
         default="original",
-        choices=["original", "single", "double"],
+        choices=["original", "single", "double", "perturbation"],
         nargs="+",
-        help="The type of simulation to run. Defaults to execution of original graph (`original`) only. Other options are `single` and `double` for single and double perturbations respectively.",
+        help="The type of simulation to run. Defaults to execution of original graph (`original`) only. Other options are `single`, `double` and `perturbation` for single and double perturbations, and step-by-step automated perturbation analysis with single perturbations respectively.",
     )
     parser.add_argument(
         "--organism",
@@ -412,7 +395,7 @@ def parse_arguments(parser: argparse.ArgumentParser) -> argparse.Namespace:
 
 # Main method
 if __name__ == "__main__":
-    start_time = time()
+    start_time = time.time()
 
     arg_parser_obj = argparse.ArgumentParser("Cell Cycle Simulation")
     namespace = parse_arguments(arg_parser_obj)
@@ -470,8 +453,11 @@ if __name__ == "__main__":
             cell_state_calc, organism, working_graph, "Original Graph", model_inputs.cyclins, double_it_cnt
         )
 
+    if "perturbation" in namespace.run_options:
+        ...
+
     print(f"Inputs: {namespace}")
-    end_time = time()
+    end_time = time.time()
     print(
         f"Execution completed in {end_time - start_time} seconds for {single_it_cnt=}, {double_it_cnt=} for {organism} cell cycle."
     )
