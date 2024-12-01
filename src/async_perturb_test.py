@@ -9,7 +9,12 @@ import yaml
 
 from all_inputs import ModelAInputs, ModelBInputs, ModelCInputs
 from state_calc_clean import CellCycleStateCalculation
-from utils import all_perturbation_generator, draw_graph_from_matrix, single_perturbation_generator
+from utils import (
+    all_perturbation_generator,
+    draw_graph_from_matrix,
+    parse_perturbation_string,
+    single_perturbation_generator,
+)
 
 NPROC = None
 
@@ -333,7 +338,7 @@ def get_best_perturbation(curr_results: pd.DataFrame) -> pd.Series:
     This function will return the best perturbation from the given results.
     """
     if "Exists in DB" in curr_results.columns:
-        curr_results = curr_results[curr_results["Exists in DB"] == True]
+        curr_results = curr_results[curr_results["Exists in DB"]]
     best_perturb = curr_results.loc[curr_results["Normalized Graph Score"].idxmin()]
 
     return best_perturb
@@ -439,6 +444,20 @@ if __name__ == "__main__":
 
     # Set the graph in the primary module
     cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier="Original Graph")
+
+    # Extra code for debugging
+    perturb_list = list()
+    perturbations = [
+        "Cdc25-to-CycD -> 0to1",
+        # "RB-to-CycA -> -1to0",
+        # "CycE-to-Cdc25 -> 0to-1",
+        # "CycE-to-CycA -> 0to1",
+    ]
+    for perturb in perturbations:
+        perturb_list.append(parse_perturbation_string(perturb_str=perturb))
+
+    working_graph = cell_state_calc.perturb_current_graph(perturb_list, graph_identifier="1-Perturbed")
+    # End of debugging code
 
     if "original" in namespace.run_options:
         write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=single_it_cnt, organism=organism)

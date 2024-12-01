@@ -1,3 +1,4 @@
+import re
 import time
 from copy import deepcopy
 from pathlib import Path
@@ -9,6 +10,29 @@ import pandas as pd
 import seaborn as sns
 
 perturbation_format_string = "{src_node}-to-{dest_node} -> {old_weight}to{new_weight}"
+
+
+def parse_perturbation_string(perturb_str: str):
+    perturb = perturb_str.split(" -> ")
+    nodes, weights = perturb[0], perturb[-1]
+    src_node, dest_node = nodes.split("-to-")
+    old_weight, new_weight = weights.split("to")
+
+    result = {
+        "src_node": src_node,
+        "dest_node": dest_node,
+        "old_weight": old_weight,
+        "new_weight": new_weight,
+    }
+    return result
+
+
+def parse_perturbation_string_with_regex(perturb_str: str):
+    perturbation_re_pattern = re.compile(
+        r"(?P<src_node>.+?)-to-(?P<dest_node>.+?) -> (?P<old_weight>.+?)to(?P<new_weight>.+?)"
+    )
+    match = perturbation_re_pattern.match(perturb_str)
+    return match.groupdict()
 
 
 def all_perturbation_generator(nodes: list, graph: list[list], perturb_self_loops: bool = False):

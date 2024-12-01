@@ -46,6 +46,7 @@ class CellCycleStateCalculation:
         logger.set_ignore_details_flag(flag=not self.__detailed_logs)
         self.__start_states = self.__get_all_possible_starting_states()
         self.__g1_start_states = self.__get_all_g1_states()
+        self.nodes_and_edges = None
 
         logger.debug(f"Class state: {self}")
         logger.debug(f"Inputs: {file_inputs=}, {user_inputs=}")
@@ -141,6 +142,39 @@ class CellCycleStateCalculation:
         self.graph_copy = [row[:] for row in graph]
         logger.debug(f"Set {graph=} for {graph_identifier=}", detail=True)
         self.graph_modification = graph_identifier
+
+    def perturb_current_graph(self, perturbations: list[dict], graph_identifier: str = "Perturbation") -> list[list]:
+        """
+        This method perturbs the current graph by applying a list of perturbations to the edges.
+        Each perturbation is represented as a dictionary with keys 'src_node', 'dest_node', 'old_weight' and 'new_weight'.
+        This method has to be called after setting the custom connected graph.
+
+        :param list[dict] perturbations: A list of perturbations to apply to the current graph.
+        :param str graph_identifier: A unique identifier for the perturbation.
+        :return list[list]: The modified graph after applying the perturbations.
+        """
+        if self.nodes_and_edges is None:
+            raise Exception("Custom Connected Graph has not been set yet!")
+
+        for perturb in perturbations:
+            src_node, dest_node, old_weight, new_weight = (
+                perturb["src_node"],
+                perturb["dest_node"],
+                perturb["old_weight"],
+                perturb["new_weight"],
+            )
+            src_node_ix = self.__get_cyclin_index(cyclin=src_node)
+            dest_node_ix = self.__get_cyclin_index(cyclin=dest_node)
+
+            if self.nodes_and_edges[dest_node_ix][src_node_ix] != int(old_weight):
+                print(
+                    f"Current weight {self.nodes_and_edges[dest_node_ix][src_node_ix]} does not match the "
+                    f"expected old weight {old_weight}! But still changing it to {new_weight}..."
+                )
+            self.nodes_and_edges[dest_node_ix][src_node_ix] = int(new_weight)
+        self.graph_modification = graph_identifier
+
+        return self.nodes_and_edges
 
     def set_random_modified_graph(self, og_graph: list[list], change_count: int = 2) -> str:
         """
