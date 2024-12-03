@@ -2,6 +2,7 @@ import argparse
 import multiprocessing as mp
 import os
 import time
+from copy import deepcopy
 from pathlib import Path
 
 import pandas as pd
@@ -159,21 +160,14 @@ def single_graph_execution(
     return graph_mod, avg_graph_score, len(final_state_sum), int(round(max_count / iterations, 0)), max_states, avg_seq
 
 
-def single_perturb_details(
+def benchmark_graph_execution(
     state_calc_obj: CellCycleStateCalculation,
-    organ: str,
     starting_graph: list,
     starting_graph_mod_id: str,
     cyclins: list,
     iter_count: int,
+    perturb_details: list,
 ):
-    """
-    Main function for handling perturbations.
-    """
-
-    graph_image_path = draw_graph_from_matrix(organism=organ, nodes=cyclins, matrix=starting_graph)
-
-    perturb_details = list()
     graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
         state_calc_obj=state_calc_obj,
         current_graph=starting_graph,
@@ -197,15 +191,14 @@ def single_perturb_details(
         ]
     )
 
-    # Cycle through perturbations and calculate data for each
-    mp_args = [
-        (state_calc_obj, double_perturb_graph, graph_mod_id, cyclins, iter_count)
-        for double_perturb_graph, graph_mod_id in single_perturbation_generator(
-            nodes=cyclins, graph=starting_graph, perturb_self_loops=True
-        )
-    ]
+    return og_graph_score, total_state_seq
+
+
+def multiprocess_perturbation_execution(
+    multiprocess_args: list, perturb_details: list, og_graph_score: int, total_state_seq: int
+):
     with mp.Pool(processes=NPROC) as mp_pool:
-        results = mp_pool.map(func=perturbation_mp_wrapper, iterable=mp_args)
+        results = mp_pool.map(func=perturbation_mp_wrapper, iterable=multiprocess_args)
     for graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq in results:
         perturb_details.append(
             [
@@ -220,6 +213,109 @@ def single_perturb_details(
                 round(100 * avg_seq["did_not_start"] / total_state_seq, 2),
             ]
         )
+
+
+def iterative_perturbations(
+    state_calc_obj: CellCycleStateCalculation,
+    starting_graph: list[list],
+    cyclins: list,
+    iter_cnt: int,
+    max_perturbs: int = 10,
+    min_improvement: float = 0.1,
+    db_validation: bool = True,
+):
+    """
+    This function will perform a step-by-step perturbation analysis.
+    """
+    perturb_details = list()
+    last_score, total_state_seq = benchmark_graph_execution(
+        state_calc_obj=state_calc_obj,
+        starting_graph=starting_graph,
+        starting_graph_mod_id="Starting Graph",
+        cyclins=cyclins,
+        iter_count=iter_cnt,
+        perturb_details=perturb_details,
+    )
+    curr_graph = deepcopy(starting_graph)
+
+    for i in range(max_perturbs):
+        perturb_id = f"Perturbation-{i+1}"
+        curr_perturbations = list()
+        mp_args = [
+            (state_calc_obj, single_perturb_graph, graph_mod_id, cyclins, iter_cnt)
+            for single_perturb_graph, graph_mod_id in single_perturbation_generator(
+                nodes=cyclins, graph=curr_graph, perturb_self_loops=True
+            )
+        ]
+        multiprocess_perturbation_execution(mp_args, curr_perturbations, last_score, total_state_seq)
+        curr_perturbations_df = get_perturbation_df(curr_perturbations)
+
+        # TODO: Pass the dataframe to valid.py here to match the perturbations with the database
+        if db_validation:
+            pass
+        best_perturb = get_best_perturbation(curr_perturbations_df)
+        perturb_details.append(
+            [
+                perturb_id,
+                best_perturb["Normalized Graph Score"],
+                best_perturb["Absolute Graph Score"],
+                best_perturb["Steady State Count"],
+                best_perturb["Largest Attractor Size"],
+                best_perturb["Most Frequent Steady State(s)"],
+                best_perturb["Correct (%)"],
+                best_perturb["Incorrect (%)"],
+                best_perturb["Did not Start (%)"],
+            ]
+        )
+
+        if best_perturb["Absolute Graph Score"] * (1 + min_improvement) > last_score:
+            break
+        perturbation_details = parse_perturbation_string(perturb_str=best_perturb["Perturbation ID"])
+        curr_graph = state_calc_obj.perturb_current_graph([perturbation_details], graph_identifier=perturb_id)
+        last_score = best_perturb["Absolute Graph Score"]
+
+    perturbation_df = get_perturbation_df(perturb_details)
+    perturbation_df.drop(columns=["Normalized Graph Score"], inplace=True)
+
+    data_folder = Path("other_results", "perturbs")
+    if not data_folder.is_dir():
+        data_folder.mkdir(parents=True, exist_ok=True)
+    file_path = data_folder / f"perturbation_analysis_{iter_cnt}_{max_perturbs}_{min_improvement}.csv"
+    perturbation_df.to_csv(file_path)
+
+
+def single_perturb_details(
+    state_calc_obj: CellCycleStateCalculation,
+    organ: str,
+    starting_graph: list,
+    starting_graph_mod_id: str,
+    cyclins: list,
+    iter_count: int,
+):
+    """
+    Main function for handling perturbations.
+    """
+
+    graph_image_path = draw_graph_from_matrix(organism=organ, nodes=cyclins, matrix=starting_graph)
+
+    perturb_details = list()
+    og_graph_score, total_state_seq = benchmark_graph_execution(
+        state_calc_obj=state_calc_obj,
+        starting_graph=starting_graph,
+        starting_graph_mod_id=starting_graph_mod_id,
+        cyclins=cyclins,
+        iter_count=iter_count,
+        perturb_details=perturb_details,
+    )
+
+    # Cycle through perturbations and calculate data for each
+    mp_args = [
+        (state_calc_obj, single_perturb_graph, graph_mod_id, cyclins, iter_count)
+        for single_perturb_graph, graph_mod_id in single_perturbation_generator(
+            nodes=cyclins, graph=starting_graph, perturb_self_loops=True
+        )
+    ]
+    multiprocess_perturbation_execution(mp_args, perturb_details, og_graph_score, total_state_seq)
 
     # Write perturb data to a file
     data_file = f"{organ}_single_perturb_it{iter_count}.xlsx"
@@ -237,27 +333,13 @@ def double_perturb_details(
     graph_image_path = draw_graph_from_matrix(organism=organ, nodes=cyclins, matrix=starting_graph)
 
     perturb_details = list()
-    graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
+    og_graph_score, total_state_seq = benchmark_graph_execution(
         state_calc_obj=state_calc_obj,
-        current_graph=starting_graph,
-        graph_mod=starting_graph_mod_id,
+        starting_graph=starting_graph,
+        starting_graph_mod_id=starting_graph_mod_id,
         cyclins=cyclins,
-        iterations=iter_count,
-    )
-    og_graph_score = avg_score
-    total_state_seq = sum(avg_seq.values())
-    perturb_details.append(
-        [
-            graph_mod,
-            round(avg_score / og_graph_score, 5),
-            avg_score,
-            unique_final_states,
-            max_state_avg,
-            max_state,
-            round(100 * avg_seq["correct"] / total_state_seq, 2),
-            round(100 * avg_seq["incorrect"] / total_state_seq, 2),
-            round(100 * avg_seq["did_not_start"] / total_state_seq, 2),
-        ]
+        iter_count=iter_count,
+        perturb_details=perturb_details,
     )
 
     mp_args = [
@@ -266,30 +348,15 @@ def double_perturb_details(
             nodes=cyclins, graph=starting_graph, perturb_self_loops=True
         )
     ]
-    with mp.Pool(processes=NPROC) as mp_pool:
-        results = mp_pool.map(func=perturbation_mp_wrapper, iterable=mp_args)
-    for graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq in results:
-        perturb_details.append(
-            [
-                graph_mod,
-                round(avg_score / og_graph_score, 5),
-                avg_score,
-                unique_final_states,
-                max_state_avg,
-                max_state,
-                round(100 * avg_seq["correct"] / total_state_seq, 2),
-                round(100 * avg_seq["incorrect"] / total_state_seq, 2),
-                round(100 * avg_seq["did_not_start"] / total_state_seq, 2),
-            ]
-        )
+    multiprocess_perturbation_execution(mp_args, perturb_details, og_graph_score, total_state_seq)
 
     data_file = f"{organ}_double_perturb_it{iter_count}.xlsx"
     write_perturb_data(perturb_details, graph_image_path, data_file)
 
 
-def write_perturb_data(perurbation_data: list, graph_img_path: Path, filename: str):
+def get_perturbation_df(perturb_details: list) -> pd.DataFrame:
     """
-    This function handles writing all the perturbation data to an Excel file.
+    This function will return a DataFrame from the given perturbation details.
     """
     df_cols = [
         "Perturbation ID",
@@ -302,7 +369,15 @@ def write_perturb_data(perurbation_data: list, graph_img_path: Path, filename: s
         "Incorrect (%)",
         "Did not Start (%)",
     ]
-    perturb_details_df = pd.DataFrame(perurbation_data, columns=df_cols)
+    perturb_details_df = pd.DataFrame(perturb_details, columns=df_cols)
+    return perturb_details_df
+
+
+def write_perturb_data(perurbation_data: list, graph_img_path: Path, filename: str):
+    """
+    This function handles writing all the perturbation data to an Excel file.
+    """
+    perturb_details_df = get_perturbation_df(perurbation_data)
 
     data_folder = Path("other_results", "perturbs")
     if not data_folder.is_dir():
@@ -333,7 +408,7 @@ def write_single_graph_details(state_calc_obj: CellCycleStateCalculation, it_cnt
     print(f"Avg score for {organism} is {avg_score} for {it_cnt} iterations.")
 
 
-def get_best_perturbation(curr_results: pd.DataFrame) -> pd.Series:
+def get_best_perturbation(curr_results: pd.DataFrame) -> dict:
     """
     This function will return the best perturbation from the given results.
     """
@@ -341,7 +416,8 @@ def get_best_perturbation(curr_results: pd.DataFrame) -> pd.Series:
         curr_results = curr_results[curr_results["Exists in DB"]]
     best_perturb = curr_results.loc[curr_results["Normalized Graph Score"].idxmin()]
 
-    return best_perturb
+    # return best_perturb as a dictionary with the column names as keys and the values as values
+    return best_perturb.to_dict()
 
 
 def parse_arguments(parser: argparse.ArgumentParser) -> argparse.Namespace:
@@ -465,14 +541,10 @@ if __name__ == "__main__":
         write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=single_it_cnt, organism=organism)
 
     if "single" in namespace.run_options:
-        single_perturb_details(
-            cell_state_calc, organism, working_graph, graph_id, model_inputs.cyclins, single_it_cnt
-        )
+        single_perturb_details(cell_state_calc, organism, working_graph, graph_id, model_inputs.cyclins, single_it_cnt)
 
     if "double" in namespace.run_options:
-        double_perturb_details(
-            cell_state_calc, organism, working_graph, graph_id, model_inputs.cyclins, double_it_cnt
-        )
+        double_perturb_details(cell_state_calc, organism, working_graph, graph_id, model_inputs.cyclins, double_it_cnt)
 
     if "perturbation" in namespace.run_options:
         ...
