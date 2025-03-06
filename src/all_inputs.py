@@ -230,6 +230,7 @@ class ModelCInputs(InputTemplate):
             "Cdc20",
             "Wee1",
             "Cdc14",
+            "XX",
         ]
     )
     cell_cycle_activation_cyclin: str = field(default="CycE")
@@ -240,7 +241,7 @@ class ModelCInputs(InputTemplate):
     g1_state_zero_cyclins: list[str] = field(default_factory=lambda: ["CycE", "CycA", "CycB", "E2F", "Cdc20"])
     g1_state_one_cyclins: list[str] = field(default_factory=lambda: ["CycD", "RB", "Wee1"])
 
-    expected_final_state: list = field(default_factory=lambda: [0, 0, 0, 0, 0, 0, 1, 0, 1, "-", 0, 1, 0])
+    expected_final_state: list = field(default_factory=lambda: [0, 0, 0, 0, 0, 0, 1, 0, 1, "-", 0, 1, 0, "-"])
 
     expected_cyclin_order: list[dict[str, int]] = field(
         default_factory=lambda: [
@@ -273,19 +274,20 @@ class ModelCInputs(InputTemplate):
     )
     modified_graph: list[list[int]] = field(
         default_factory=lambda: [
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0],  # "CycD"
-            [0, 0, 0, 0, 1, -1, 0, 0, -1, -1, 0, 0, 0],  # "CycE"
-            [0, 0, 0, 0, 1, 0, 0, 1, -1, -1, -1, -1, 0],  # "CycA"
-            [0, 0, 0, 1, 0, 0, -1, 1, 0, -1, -1, -1, 0],  # "CycB"
-            [0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0],  # "E2F"
-            [0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0],  # "Skp2"
-            [0, 0, -1, -1, 0, 0, 1, 0, 0, 0, 0, 0, 0],  # "Cdh1"
-            [0, 0, 1, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0],  # "Cdc25"
-            [-1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],  # "RB"
-            [0, -1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 1],  # "P21"
-            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0],  # "Cdc20"
-            [0, -1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 1, 0],  # "Wee1"
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1],  # "Cdc14"
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0],  # "CycD"
+            [0, 0, 0, 0, 1, -1, 0, 0, -1, -1, 0, 0, 0, 0],  # "CycE"
+            [0, 0, 0, 0, 1, 0, 0, 1, -1, -1, -1, -1, 0, 0],  # "CycA"
+            [0, 0, 0, 1, 0, 0, -1, 1, 0, -1, -1, -1, 0, 0],  # "CycB"
+            [0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0],  # "E2F"
+            [0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0, 0],  # "Skp2"
+            [0, 0, -1, -1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],  # "Cdh1"
+            [0, 0, 1, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0],  # "Cdc25"
+            [-1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],  # "RB"
+            [0, -1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0],  # "P21"
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0],  # "Cdc20"
+            [0, -1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],  # "Wee1"
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1, 0],  # "Cdc14"
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # "XX"
         ]
     )
 

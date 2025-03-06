@@ -447,32 +447,28 @@ if __name__ == "__main__":
     cell_state_calc.set_custom_connected_graph(graph=working_graph, graph_identifier=graph_id)
 
     # Extra code for debugging
-    perturb_list = list()
-    perturbations = [
-        "Cdc25-to-CycD -> 0to1",
-        "RB-to-CycA -> -1to0",
-        "CycE-to-Cdc25 -> 0to-1",
-        "CycE-to-CycA -> 0to1",
-    ]
-    for perturb in perturbations:
-        perturb_list.append(parse_perturbation_string(perturb_str=perturb))
+    # perturb_list = list()
+    # perturbations = [
+    #     "Cdc25-to-CycD -> 0to1",
+    #     "RB-to-CycA -> -1to0",
+    #     "CycE-to-Cdc25 -> 0to-1",
+    #     "CycE-to-CycA -> 0to1",
+    # ]
+    # for perturb in perturbations:
+    #     perturb_list.append(parse_perturbation_string(perturb_str=perturb))
 
-    graph_id = "All-Perturbed"
-    working_graph = cell_state_calc.perturb_current_graph(perturb_list, graph_identifier=graph_id)
+    # graph_id = "All-Perturbed"
+    # working_graph = cell_state_calc.perturb_current_graph(perturb_list, graph_identifier=graph_id)
     # End of debugging code
 
     if "original" in namespace.run_options:
         write_single_graph_details(state_calc_obj=cell_state_calc, it_cnt=single_it_cnt, organism=organism)
 
     if "single" in namespace.run_options:
-        single_perturb_details(
-            cell_state_calc, organism, working_graph, graph_id, model_inputs.cyclins, single_it_cnt
-        )
+        single_perturb_details(cell_state_calc, organism, working_graph, graph_id, model_inputs.cyclins, single_it_cnt)
 
     if "double" in namespace.run_options:
-        double_perturb_details(
-            cell_state_calc, organism, working_graph, graph_id, model_inputs.cyclins, double_it_cnt
-        )
+        double_perturb_details(cell_state_calc, organism, working_graph, graph_id, model_inputs.cyclins, double_it_cnt)
 
     if "perturbation" in namespace.run_options:
         ...
