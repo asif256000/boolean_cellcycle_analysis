@@ -35,7 +35,120 @@ def parse_perturbation_string_with_regex(perturb_str: str):
     return match.groupdict()
 
 
-def all_perturbation_generator(nodes: list, graph: list[list], perturb_self_loops: bool = False):
+def _apply_perturbation(nodes, graph, dest_ix, src_ix, old_wt, new_wt):
+    cc_graph = deepcopy(graph)
+    cc_graph[dest_ix][src_ix] = new_wt
+    source, destination = nodes[src_ix], nodes[dest_ix]
+    return cc_graph, perturbation_format_string.format(
+        src_node=source, dest_node=destination, old_weight=old_wt, new_weight=new_wt
+    )
+
+
+def __get_possible_perturbs_for_position(graph: list[list], row_ix: int, col_ix: int) -> list[tuple]:
+    """
+    Get possible perturbations for a given position in the graph.
+
+    :param list[list] graph: The graph represented as a 2D list.
+    :param int row_ix: The row index of the position.
+    :param int col_ix: The column index of the position.
+    :return list[tuple]: A list of tuples representing the possible perturbations. The tuple contains the source index, destination index, old weight, and new weights.
+    """
+    possible_weights = {-1, 0, 1}
+    old_wt = graph[row_ix][col_ix]
+    return [(col_ix, row_ix, old_wt, new_wt) for new_wt in possible_weights - {old_wt}]
+
+
+def __get_specific_node_single_perturbs(
+    nodes: list, graph: list[list], nodes_to_perturb: list[str] = None, perturb_self_loops: bool = False
+) -> list[tuple]:
+    all_possible_perturbations = list()
+    node_len = len(graph)
+    if nodes_to_perturb is None:
+        nodes_to_perturb = nodes
+
+    for node in nodes_to_perturb:
+        node_ix = nodes.index(node)
+        for i in range(node_len):
+            if not perturb_self_loops and i == node_ix:
+                continue
+            all_possible_perturbations.extend(__get_possible_perturbs_for_position(graph, node_ix, i))
+            if i == node_ix:
+                continue
+            all_possible_perturbations.extend(__get_possible_perturbs_for_position(graph, i, node_ix))
+
+    return all_possible_perturbations
+
+
+def specific_node_perturbation_generator(
+    nodes: list, graph: list[list], nodes_to_perturb: list[str] = None, perturb_self_loops: bool = False
+):
+    all_single_perturbations = __get_specific_node_single_perturbs(nodes, graph, nodes_to_perturb, perturb_self_loops)
+
+    for src_ix, dest_ix, old_wt, new_wt in all_single_perturbations:
+        yield _apply_perturbation(nodes, graph, dest_ix, src_ix, old_wt, new_wt)
+
+
+def specific_node_double_perturbation_generator(
+    nodes: list, graph: list[list], nodes_to_perturb: list[str] = None, perturb_self_loops: bool = False
+):
+    track_perturbations = set()
+    all_single_perturbations = __get_specific_node_single_perturbs(nodes, graph, nodes_to_perturb, perturb_self_loops)
+    for perturb1 in all_single_perturbations:
+        for perturb2 in all_single_perturbations:
+            if perturb1 == perturb2:
+                continue
+            src_ix1, dest_ix1, old_wt1, new_wt1 = perturb1
+            src_ix2, dest_ix2, old_wt2, new_wt2 = perturb2
+            if src_ix1 == src_ix2 and dest_ix1 == dest_ix2:
+                continue
+
+            pair_key = frozenset([perturb1, perturb2])
+            if pair_key in track_perturbations:
+                continue
+            track_perturbations.add(pair_key)
+
+            graph1, perturb_str1 = _apply_perturbation(nodes, graph, dest_ix1, src_ix1, old_wt1, new_wt1)
+            graph2, perturb_str2 = _apply_perturbation(nodes, graph1, dest_ix2, src_ix2, old_wt2, new_wt2)
+
+            yield graph2, f"{perturb_str1} | {perturb_str2}"
+
+
+def specific_node_multi_perturbation_generator(
+    nodes: list,
+    graph: list[list],
+    nodes_to_perturb: list = None,
+    perturbation_depth: int = 2,
+    perturb_self_loops: bool = False,
+):
+    all_single_perturbations = __get_specific_node_single_perturbs(nodes, graph, nodes_to_perturb, perturb_self_loops)
+    seen_combinations = set()
+
+    def _recursive_apply(base_graph, depth, chosen, used, used_positions):
+        if depth == perturbation_depth:
+            key = frozenset(chosen)
+            if key not in seen_combinations:
+                seen_combinations.add(key)
+                yield base_graph, " | ".join(chosen)
+            return
+        for p in all_single_perturbations:
+            if p in used:
+                continue
+            src_ix, dest_ix, old_wt, new_wt = p
+            position_key = (src_ix, dest_ix)
+            if position_key in used_positions:
+                continue
+            used_copy = set(used)
+            used_copy.add(p)
+            positions_copy = set(used_positions)
+            positions_copy.add(position_key)
+
+            updated_graph, p_str = _apply_perturbation(nodes, base_graph, dest_ix, src_ix, old_wt, new_wt)
+            yield from _recursive_apply(updated_graph, depth + 1, chosen + [p_str], used_copy, positions_copy)
+
+    yield from _recursive_apply(graph, 0, [], set(), set())
+
+
+def double_perturbation_generator(nodes: list, graph: list[list], perturb_self_loops: bool = False):
     possible_weights = {-1, 0, 1}
     node_len = len(graph)
     for i in range(node_len**2):
