@@ -10,10 +10,11 @@ import yaml
 from all_inputs import ModelAInputs, ModelBInputs, ModelCInputs
 from state_calc_clean import CellCycleStateCalculation
 from utils import (
-    all_perturbation_generator,
+    double_perturbation_generator,
     draw_graph_from_matrix,
     parse_perturbation_string,
     single_perturbation_generator,
+    specific_node_multi_perturbation_generator,
 )
 
 NPROC = None
@@ -159,9 +160,81 @@ def single_graph_execution(
     return graph_mod, avg_graph_score, len(final_state_sum), int(round(max_count / iterations, 0)), max_states, avg_seq
 
 
+def discover_node_connections(
+    state_calc_obj: CellCycleStateCalculation,
+    organism: str,
+    starting_graph: list,
+    starting_graph_mod_id: str,
+    cyclins: list,
+    new_nodes: list,
+    perturbation_chain_depth: int,
+    iter_count: int,
+):
+    """
+    This function will discover the connections between the nodes and new nodes that are to be added to the graph.
+    """
+    graph_image_path = draw_graph_from_matrix(organism=organism, nodes=cyclins, matrix=starting_graph)
+
+    perturb_details = list()
+    graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
+        state_calc_obj=state_calc_obj,
+        current_graph=starting_graph,
+        graph_mod=starting_graph_mod_id,
+        cyclins=cyclins,
+        iterations=iter_count,
+    )
+    og_graph_score = avg_score
+    total_state_seq = sum(avg_seq.values())
+    perturb_details.append(
+        [
+            graph_mod,
+            round(avg_score / og_graph_score, 5),
+            avg_score,
+            unique_final_states,
+            max_state_avg,
+            max_state,
+            round(100 * avg_seq["correct"] / total_state_seq, 2),
+            round(100 * avg_seq["incorrect"] / total_state_seq, 2),
+            round(100 * avg_seq["did_not_start"] / total_state_seq, 2),
+        ]
+    )
+
+    mp_args = [
+        (state_calc_obj, double_perturb_graph, graph_mod_id, cyclins, iter_count)
+        for double_perturb_graph, graph_mod_id in specific_node_multi_perturbation_generator(
+            nodes=cyclins,
+            graph=starting_graph,
+            nodes_to_perturb=new_nodes,
+            perturbation_depth=perturbation_chain_depth,
+            perturb_self_loops=False,
+        )
+    ]
+
+    with mp.Pool(processes=NPROC) as mp_pool:
+        results = mp_pool.map(func=perturbation_mp_wrapper, iterable=mp_args)
+    for graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq in results:
+        perturb_details.append(
+            [
+                graph_mod,
+                round(avg_score / og_graph_score, 5),
+                avg_score,
+                unique_final_states,
+                max_state_avg,
+                max_state,
+                round(100 * avg_seq["correct"] / total_state_seq, 2),
+                round(100 * avg_seq["incorrect"] / total_state_seq, 2),
+                round(100 * avg_seq["did_not_start"] / total_state_seq, 2),
+            ]
+        )
+
+    # Write perturb data to a file
+    data_file = f"{organism}_discover_node_it{iter_count}.xlsx"
+    write_perturb_data(perturb_details, graph_image_path, data_file)
+
+
 def single_perturb_details(
     state_calc_obj: CellCycleStateCalculation,
-    organ: str,
+    organism: str,
     starting_graph: list,
     starting_graph_mod_id: str,
     cyclins: list,
@@ -171,7 +244,7 @@ def single_perturb_details(
     Main function for handling perturbations.
     """
 
-    graph_image_path = draw_graph_from_matrix(organism=organ, nodes=cyclins, matrix=starting_graph)
+    graph_image_path = draw_graph_from_matrix(organism=organism, nodes=cyclins, matrix=starting_graph)
 
     perturb_details = list()
     graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
@@ -222,19 +295,19 @@ def single_perturb_details(
         )
 
     # Write perturb data to a file
-    data_file = f"{organ}_single_perturb_it{iter_count}.xlsx"
+    data_file = f"{organism}_single_perturb_it{iter_count}.xlsx"
     write_perturb_data(perturb_details, graph_image_path, data_file)
 
 
 def double_perturb_details(
     state_calc_obj: CellCycleStateCalculation,
-    organ: str,
+    organism: str,
     starting_graph: list,
     starting_graph_mod_id: str,
     cyclins: list,
     iter_count: int,
 ):
-    graph_image_path = draw_graph_from_matrix(organism=organ, nodes=cyclins, matrix=starting_graph)
+    graph_image_path = draw_graph_from_matrix(organism=organism, nodes=cyclins, matrix=starting_graph)
 
     perturb_details = list()
     graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq = single_graph_execution(
@@ -262,7 +335,7 @@ def double_perturb_details(
 
     mp_args = [
         (state_calc_obj, double_perturb_graph, graph_mod_id, cyclins, iter_count)
-        for double_perturb_graph, graph_mod_id in all_perturbation_generator(
+        for double_perturb_graph, graph_mod_id in double_perturbation_generator(
             nodes=cyclins, graph=starting_graph, perturb_self_loops=True
         )
     ]
@@ -283,7 +356,7 @@ def double_perturb_details(
             ]
         )
 
-    data_file = f"{organ}_double_perturb_it{iter_count}.xlsx"
+    data_file = f"{organism}_double_perturb_it{iter_count}.xlsx"
     write_perturb_data(perturb_details, graph_image_path, data_file)
 
 
@@ -350,7 +423,7 @@ def parse_arguments(parser: argparse.ArgumentParser) -> argparse.Namespace:
         "--run_options",
         "-r",
         default="original",
-        choices=["original", "single", "double", "perturbation"],
+        choices=["original", "single", "double", "discovery", "perturbation"],
         nargs="+",
         help="The type of simulation to run. Defaults to execution of original graph (`original`) only. Other options are `single`, `double` and `perturbation` for single and double perturbations, and step-by-step automated perturbation analysis with single perturbations respectively.",
     )
@@ -393,6 +466,13 @@ def parse_arguments(parser: argparse.ArgumentParser) -> argparse.Namespace:
         default="simulation_params.yaml",
         type=str,
         help="The input file name (yaml format) to be used for the simulation. If not provided, the default input file (simulation_params.yaml) will be used.",
+    )
+    parser.add_argument(
+        "--discovery_depth",
+        "-depth",
+        default=2,
+        type=int,
+        help="The depth of perturbation discovery for new nodes added to the model. This is to be used only when run_options contain discovery as an option. Defaults to 2.",
     )
     namespace = parser.parse_args()
     return namespace
@@ -469,6 +549,18 @@ if __name__ == "__main__":
 
     if "double" in namespace.run_options:
         double_perturb_details(cell_state_calc, organism, working_graph, graph_id, model_inputs.cyclins, double_it_cnt)
+
+    if "discovery" in namespace.run_options:
+        discover_node_connections(
+            state_calc_obj=cell_state_calc,
+            organism=organism,
+            starting_graph=working_graph,
+            starting_graph_mod_id=graph_id,
+            cyclins=model_inputs.cyclins,
+            new_nodes=model_inputs.new_cyclins,
+            perturbation_chain_depth=namespace.discovery_depth,
+            iter_count=double_it_cnt,
+        )
 
     if "perturbation" in namespace.run_options:
         ...
