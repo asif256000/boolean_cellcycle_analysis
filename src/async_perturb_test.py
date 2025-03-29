@@ -228,7 +228,7 @@ def discover_node_connections(
         )
 
     # Write perturb data to a file
-    data_file = f"{organism}_discover_node_it{iter_count}.xlsx"
+    data_file = f"{organism}_discover_node_{perturbation_chain_depth}_perturbs_it{iter_count}.xlsx"
     write_perturb_data(perturb_details, graph_image_path, data_file)
 
 
