@@ -8,6 +8,9 @@ from typing import get_origin
 class InputTemplate:
     organism: str = None  # The organism for which the model is being tested
     cyclins: list[str] = field(default_factory=list)  # List of cyclins that are present in the model
+    new_cyclins: list[str] = field(
+        default_factory=list
+    )  # List of new cyclins that are to be added to the model and discover new edges
     cell_cycle_activation_cyclin: str = None  # The cyclin that activates the cell cycle
     # The boolean graph of the model, represented as a 2D list with each element representing incoming edge
     # We use this in the simulation, while the original_graph is kept as a backup of the original graph
@@ -73,6 +76,7 @@ class ModelAInputs(InputTemplate):
             "Mcm1,SFF",
         ]
     )
+    new_cyclins: list[str] = field(default_factory=lambda: ["Cdc2014"])
     cell_cycle_activation_cyclin: str = field(default="Clb5,6")
     optimal_graph_score: int = field(default=751)
     g1_only_optimal_graph_score: int = field(default=2111)
@@ -151,6 +155,7 @@ class ModelBInputs(InputTemplate):
     cyclins: list[str] = field(
         default_factory=lambda: ["CycD", "CycE", "CycA", "Cdc20", "CycB", "E2F", "RB", "P27", "Cdh1", "Cdc14"]
     )
+    new_cyclins: list[str] = field(default_factory=lambda: ["Cdc20"])
     cell_cycle_activation_cyclin: str = "CycE"
     optimal_graph_score: int = field(default=4171)
     g1_only_optimal_graph_score: int = field(default=2111)
@@ -233,6 +238,7 @@ class ModelCInputs(InputTemplate):
             "XX",
         ]
     )
+    new_cyclins: list[str] = field(default_factory=lambda: ["XX"])
     cell_cycle_activation_cyclin: str = field(default="CycE")
     optimal_graph_score: int = field(default=4171)
     g1_only_optimal_graph_score: int = field(default=2111)
