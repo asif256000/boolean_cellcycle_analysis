@@ -551,6 +551,10 @@ if __name__ == "__main__":
         double_perturb_details(cell_state_calc, organism, working_graph, graph_id, model_inputs.cyclins, double_it_cnt)
 
     if "discovery" in namespace.run_options:
+        if namespace.discovery_depth <= 1:
+            it_count = single_it_cnt
+        else:
+            it_count = double_it_cnt
         discover_node_connections(
             state_calc_obj=cell_state_calc,
             organism=organism,
@@ -559,7 +563,7 @@ if __name__ == "__main__":
             cyclins=model_inputs.cyclins,
             new_nodes=model_inputs.new_cyclins,
             perturbation_chain_depth=namespace.discovery_depth,
-            iter_count=double_it_cnt,
+            iter_count=it_count,
         )
 
     if "perturbation" in namespace.run_options:
