@@ -3,8 +3,10 @@ from argparse import Namespace
 from copy import deepcopy
 from random import choice, choices, shuffle
 
-from all_inputs import InputTemplate
-from log_module import logger
+import numpy as np
+
+from src.all_inputs import InputTemplate
+from src.log_module import logger
 
 
 class CellCycleStateCalculation:
@@ -139,7 +141,6 @@ class CellCycleStateCalculation:
                     f"Edges {edges} length does not match Cyclins {self.__all_cyclins} length for node number {ix+1}"
                 )
         self.nodes_and_edges = graph
-        self.graph_copy = [row[:] for row in graph]
         logger.debug(f"Set {graph=} for {graph_identifier=}", detail=True)
         self.graph_modification = graph_identifier
 
@@ -190,7 +191,6 @@ class CellCycleStateCalculation:
             change_tracker.append(self.__edge_shuffle(cyclin_len=cyclin_len, graph_to_modify=graph))
 
         self.nodes_and_edges = graph
-        self.graph_copy = [row[:] for row in graph]
 
         return ", ".join(change_tracker)
 
@@ -263,8 +263,8 @@ class CellCycleStateCalculation:
                 return False
         reqd_list = graph_matrix[cyclin_index][:cyclin_index] + graph_matrix[cyclin_index][cyclin_index + 1 :]
         green_arrow_count = reqd_list.count(1)
-        # red_arrow_count = reqd_list.count(-1)
-        if green_arrow_count == 0:  # or red_arrow_count > green_arrow_count:
+        red_arrow_count = reqd_list.count(-1)
+        if green_arrow_count == 0 or red_arrow_count > green_arrow_count:
             return True
         return False
 
@@ -272,9 +272,9 @@ class CellCycleStateCalculation:
         """This function decides whether to apply self-loops (whether degrading or activating) for a particular cyclin in the graph.
 
         :param list[list] graph_matrix: Interaction graph represented as a matrix (list of list of int).
-        :param list current_state: _description_
-        :param list next_state: _description_
-        :param int cyclin_ix: _description_
+        :param list current_state: Currnet state of the model.
+        :param list next_state: Next calculated state of the model.
+        :param int cyclin_ix: The index of the cyclin in the original list of nodes for which the decision is to be made.
         """
         if (
             self.__self_deactivation_flag
@@ -296,6 +296,9 @@ class CellCycleStateCalculation:
         The result is a new state for the specified cyclin.
         """
         next_state = [x for x in current_state]
+        # next_state = current_state.copy() # These assume that current_state and
+        # row = graph_matrix[cyclin_ix].copy() # grpah_matrix are numpy arrays
+        # row[cyclin_ix] = 0
 
         state_value = 0
         for current_node_index, edge_val in enumerate(graph_matrix[cyclin_ix]):
@@ -336,7 +339,7 @@ class CellCycleStateCalculation:
 
         return next_state
 
-    def __generate_state_table(self, graph_matrix: list[list], graph_mod_id: str, start_state: list) -> list:
+    def __generate_state_table(self, graph_matrix: list[list], start_state: list) -> list:
         """
         This method generates a state table by simulating the dynamics of the network
         model described by the given graph matrix, starting from the provided
@@ -438,6 +441,67 @@ class CellCycleStateCalculation:
                 return ix
         return default_ix
 
+    def __all_state_operations(self, graph: list[list], all_states: list, use_gpu: bool = False) -> list:
+        """
+        This method unifies all the operations on the list of states generated during the simulation.
+        """
+        state_scores_dict = dict()
+        final_states = list()
+        state_seq_type = dict()
+        incorrect_seq_tracker = list()
+        correct_seq_tracker = list()
+        not_started_seq_tracker = list()
+
+        for start_state in all_states:
+            cell_div_start_flag = False
+            all_cyclin_states, update_sequence = self.__generate_state_table(
+                graph_matrix=graph, start_state=start_state
+            )
+            if self.__check_activation_index(all_cyclin_states) != -1:
+                cell_div_start_flag = True
+
+            if self.__exp_cycle_detection and self.__detect_end_cycles(all_cyclin_states):
+                final_states.append("C" * len(self.__all_cyclins))
+                state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
+                    all_cyclin_states[-2]
+                )
+                logger.debug(
+                    f"Cycle found for start state: {str(dict(zip(self.__all_cyclins, start_state)))}", detail=True
+                )
+            elif not self.__exp_cycle_detection and self.__lazy_detect_cycles(all_cyclin_states):
+                final_states.append("C" * len(self.__all_cyclins))
+                state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
+                    all_cyclin_states[-2]
+                )
+            else:
+                curr_final_state = all_cyclin_states[-1]
+                final_states.append("".join(map(str, curr_final_state)))
+                state_score = self.__calculate_state_scores(curr_final_state)
+
+            state_scores_dict["".join(map(str, start_state))] = state_score
+            if self.__view_state_table:
+                self.print_state_table(all_cyclin_states, update_sequence)
+
+            curr_start_state_str = self.state_as_str(start_state)
+            if self.__check_sequence and start_state in self.__g1_start_states:
+                if not cell_div_start_flag:
+                    not_started_seq_tracker.append(curr_start_state_str)
+                    state_seq_type["".join(map(str, start_state))] = "did_not_start"
+                    if start_state in self.__g1_start_states:
+                        state_score += self.__sequence_penalty
+                        state_scores_dict["".join(map(str, start_state))] = state_score
+                    continue
+                if self.verify_sequence(all_cyclin_states):
+                    correct_seq_tracker.append(curr_start_state_str)
+                    state_seq_type["".join(map(str, start_state))] = "correct"
+                else:
+                    logger.debug("Correct Cyclin order not followed for this start_state", detail=True)
+                    incorrect_seq_tracker.append(curr_start_state_str)
+                    state_seq_type["".join(map(str, start_state))] = "incorrect"
+                    if start_state in self.__g1_start_states:
+                        state_score += self.__sequence_penalty
+                        state_scores_dict["".join(map(str, start_state))] = state_score
+
     def __iterate_all_start_states(self, graph_matrix: list[list], graph_mod_id: str) -> tuple[dict, list]:
         """
         This method iterates through all possible start states of the cell cycle model and
@@ -459,7 +523,7 @@ class CellCycleStateCalculation:
         for start_state in all_start_states:
             cell_div_start_flag = False
             all_cyclin_states, update_sequence = self.__generate_state_table(
-                graph_matrix=graph_matrix, graph_mod_id=graph_mod_id, start_state=start_state
+                graph_matrix=graph_matrix, start_state=start_state
             )
             if self.__check_activation_index(all_cyclin_states) != -1:
                 cell_div_start_flag = True
