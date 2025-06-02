@@ -487,7 +487,7 @@ if __name__ == "__main__":
 
     organism = namespace.organism
     input_models = {"model01": ModelAInputs(), "model02": ModelBInputs(), "model03": ModelCInputs()}
-    model_inputs = input_models.get(organism)
+    model_inputs = input_models.get(organism, ModelCInputs())
 
     simulation_input_file = Path("sim_input", namespace.input_file)
     with open(simulation_input_file, "r") as sim_params_file:

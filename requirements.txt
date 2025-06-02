@@ -31,3 +31,8 @@ six
 snakeviz
 tornado
 XlsxWriter
+jax
+jaxlib
+jax-metal
+jax[cuda12]
+jax[rocm]
