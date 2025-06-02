@@ -16,22 +16,36 @@ The primary goal of this paper is to analyze all perturbations of the boolean ne
 ### Text Usage
 
 1. Open the terminal and navigate to the project directory.
-2. Open `async_perturb_test.py` and edit `calc_params` for advanced settings.
-3. Run the script: `python async_perturb_test.py <model_name> <-f> <-c> <single_it_count> <double_it_count>`.  
-   `<model_name>` represents the model to use. Available models: model01, model02 and model03.  
-   `<-f>` Add this flag to use filter states.  
-   `<-c>` Add this flag to use custom states.  
-   `<single_it_count>` Enter the number of single iterations the program should run.  
-   `<double_it_count>` Enter the number of double iterations the program should run.
-   You can also run `python async_perturb_test.py -h` to check the help page.
-4. The output will be available as excel files in the folder `other_results`.
+2. Simulation parameters can be configured in `sim_input/simulation_params.yaml`. Many of these parameters can be overridden using command-line arguments. For advanced settings not exposed via command-line or YAML, you might need to inspect the script `src/async_perturb_test.py`.
+3. Run the script from the project root directory: `python src/async_perturb_test.py [options]`.
+   Example: `python src/async_perturb_test.py -r single double -o model02 -s 10 -d 5 -g1`
+   Below are the available command-line arguments:
+   - `--run_options` (`-r`): Specify the type of simulation(s) to run.
+     Choices: `original`, `single`, `double`, `discovery`, `perturbation`.
+     Can take multiple values (e.g., `-r single double`). Defaults to `original`.
+   - `--organism` (`-o`): Select the model for the simulation.
+     Choices: `model01`, `model02`, `model03`. Defaults to `model01`.
+   - `--single_iter_cnt` (`-s`): Set the number of iterations for single perturbation analysis.
+     Defaults to `4`.
+   - `--double_iter_cnt` (`-d`): Set the number of iterations for double perturbation analysis.
+     Defaults to `2`.
+   - `--g1_only_start_states` (`-g1`): Use only G1 states as start states for the simulation.
+     This is a flag; add it to enable. Cannot be used with `-c`.
+   - `--custom_start_states` (`-c`): Use custom start states defined in the model inputs.
+     This is a flag; add it to enable. Cannot be used with `-g1`.
+   - `--input_file` (`-i`): Specify the YAML input file for simulation parameters, located in the `sim_input` directory (relative to the project root).
+     Defaults to `simulation_params.yaml`.
+   - `--discovery_depth` (`-depth`): Define the perturbation discovery depth for new nodes.
+     Used with the `discovery` run option. Defaults to `2`.
+     You can also run `python src/async_perturb_test.py -h` to see the full help message.
+4. The output will be available as excel files in the folder `other_results` (created in the project root if it doesn't exist).
 
 ### GUI Usage
 
-1. Open the terminal and navigate to the project directory and move to the `src` folder.
-2. Open `async_perturb_test.py` and edit `calc_params` for advanced settings.
-3. Run the script: `python gui.py`. Edit the options in the popup.
-4. The output will be available as excel files in the folder `other_results`.
+1. Open the terminal, navigate to the project directory, and then move to the `src` folder: `cd src`.
+2. Simulation parameters can be configured in `../sim_input/simulation_params.yaml` (relative to the `src` directory). Some parameters might be configurable through the GUI popup. For advanced settings not exposed via GUI or YAML, you might need to inspect the script `async_perturb_test.py`.
+3. Run the script: `python gui.py`. Edit the options in the GUI popup as needed.
+4. The output will be available as excel files in the folder `../other_results` (i.e., in the `other_results` folder at the project root).
 
 ## Contributing
 
