@@ -15,9 +15,10 @@ The primary goal of this paper is to analyze all perturbations of the boolean ne
 
 This project supports GPU acceleration using JAX for significantly faster performance with large state spaces:
 
-1. Install JAX with GPU support: `pip install "jax[cuda]"` (for NVIDIA GPUs)
-2. For AMD GPUs: `pip install "jax[rocm]"`
-3. For CPU-only: `pip install jax`
+1. Install JAX with GPU support: `pip install "jax[cuda12]"` (for NVIDIA GPUs)
+2. For Google TPUs: `pip install "jax[tpu]"`
+3. For AMD GPUs: `pip install "jax[rocm]"`
+4. For CPU-only: `pip install jax`
 
 Note: JAX GPU support requires compatible hardware and drivers. See the [JAX installation guide](https://github.com/google/jax#installation) for details.
 
