@@ -31,3 +31,5 @@ six
 snakeviz
 tornado
 XlsxWriter
+jax
+jaxlib
