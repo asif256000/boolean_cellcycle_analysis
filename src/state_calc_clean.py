@@ -138,7 +138,7 @@ class CellCycleStateCalculation:
         for ix, edges in enumerate(graph):
             if len(edges) != len(self.__all_cyclins):
                 raise Exception(
-                    f"Edges {edges} length does not match Cyclins {self.__all_cyclins} length for node number {ix+1}"
+                    f"Edges {edges} length does not match Cyclins {self.__all_cyclins} length for node number {ix + 1}"
                 )
         self.nodes_and_edges = graph
         logger.debug(f"Set {graph=} for {graph_identifier=}", detail=True)
@@ -655,7 +655,7 @@ class CellCycleStateCalculation:
         for ix, ix_state in enumerate(cyclin_states[1:]):
             if self.__view_state_change_only and ix_state == curr_tracked_state:
                 continue
-            table_as_str += f"Time: {ix+1:>04}, "
+            table_as_str += f"Time: {ix + 1:>04}, "
             table_as_str += self.state_as_str(ix_state)
             if random_update_sequence:
                 table_as_str += f", Update: {random_update_sequence[ix]}\n"
