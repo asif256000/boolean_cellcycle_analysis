@@ -153,9 +153,9 @@ class ModelAInputs(InputTemplate):
 class ModelBInputs(InputTemplate):
     organism: str = field(default="Mammal - Model02")
     cyclins: list[str] = field(
-        default_factory=lambda: ["CycD", "CycE", "CycA", "Cdc20", "CycB", "E2F", "RB", "P27", "Cdh1", "Cdc14"]
+        default_factory=lambda: ["CycD", "CycE", "CycA", "Cdc20", "CycB", "E2F", "RB", "P27", "Cdh1", "Cdc14", "XX"]
     )
-    new_cyclins: list[str] = field(default_factory=lambda: ["Cdc20"])
+    new_cyclins: list[str] = field(default_factory=lambda: ["Cdc20", "XX"])
     cell_cycle_activation_cyclin: str = "CycE"
     optimal_graph_score: int = field(default=4171)
     g1_only_optimal_graph_score: int = field(default=2111)
@@ -164,7 +164,7 @@ class ModelBInputs(InputTemplate):
     g1_state_zero_cyclins: list[str] = field(default_factory=lambda: ["CycE", "CycA", "CycB", "Cdc20"])
     g1_state_one_cyclins: list[str] = field(default_factory=lambda: ["CycD", "RB", "P27", "Cdh1"])
 
-    expected_final_state: list = field(default_factory=lambda: [0, 0, 0, 0, 0, 0, 1, "-", 1, 0])
+    expected_final_state: list = field(default_factory=lambda: [0, 0, 0, 0, 0, 0, 1, "-", 1, 0, "-"])
 
     expected_cyclin_order: list[dict[str, int]] = field(
         default_factory=lambda: [
@@ -180,16 +180,17 @@ class ModelBInputs(InputTemplate):
 
     modified_graph: list[list[int]] = field(
         default_factory=lambda: [
-            [0, 0, 0, 0, 0, 0, 0, -1, 0, 0],  # "CycD"
-            [0, 0, 0, 0, 0, 1, 0, -1, 0, 0],  # "CycE"
-            [0, 0, 0, -1, 0, 1, 0, -1, 0, 0],  # "CycA"
-            [0, 0, 0, -1, 1, 0, 0, 0, 0, 0],  # "Cdc20"
-            [0, 0, 0, -1, 1, 0, 0, 0, -1, 0],  # "CycB"
-            [0, 0, -1, 0, -1, 1, -1, 0, 0, 0],  # "E2F"
-            [-1, -1, -1, 0, -1, 0, 1, 0, 0, 1],  # "RB"
-            [-1, -1, -1, 0, -1, 0, 0, -1, 0, 1],  # "P27"
-            [0, -1, -1, 0, -1, 0, 0, 0, 0, 1],  # "Cdh1"
-            [0, 0, 0, 1, 0, 0, 0, 0, 0, -1],  # "Cdc14"
+            [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0],  # "CycD"
+            [0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0],  # "CycE"
+            [0, 0, 0, -1, 0, 1, 0, -1, 0, 0, 0],  # "CycA"
+            [0, 0, 0, -1, 1, 0, 0, 0, 0, 0, 0],  # "Cdc20"
+            [0, 0, 0, -1, 1, 0, 0, 0, -1, 0, 0],  # "CycB"
+            [0, 0, -1, 0, -1, 1, -1, 0, 0, 0, 0],  # "E2F"
+            [-1, -1, -1, 0, -1, 0, 1, 0, 0, 1, 0],  # "RB"
+            [-1, -1, -1, 0, -1, 0, 0, -1, 0, 1, 0],  # "P27"
+            [0, -1, -1, 0, -1, 0, 0, 0, 0, 1, 0],  # "Cdh1"
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0],  # "Cdc14"
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # "XX"
         ]
     )
 
