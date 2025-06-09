@@ -3,7 +3,7 @@ import pandas as pd
 # read by default 1st sheet of an excel file
 PRINT_SCORE = False
 DB_DATA_FILE = "all_data_25_07_23.xlsx"
-EXCEL_TO_CHECK = "model03_single_perturb_it100.xlsx"  # Replace with file name
+EXCEL_TO_CHECK = "model02_double_perturb_it2.xlsx"  # Replace with file name
 
 # Source of truth DB compared against from SIGNOR database
 # https://signor.uniroma2.it/
