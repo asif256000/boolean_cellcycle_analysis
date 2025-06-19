@@ -343,7 +343,7 @@ def double_perturb_details(
     # In mp_args filter only perturbations that have XX
     filtered = []
     for i in mp_args:
-        if re.search("XX" ,i[-3]):
+        if re.search(r".*XX.*\|.*XX.*" ,i[-3]):
             filtered.append(i)
     mp_args = filtered
 
