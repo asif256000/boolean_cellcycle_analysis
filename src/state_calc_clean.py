@@ -441,67 +441,6 @@ class CellCycleStateCalculation:
                 return ix
         return default_ix
 
-    def __all_state_operations(self, graph: list[list], all_states: list, use_gpu: bool = False) -> list:
-        """
-        This method unifies all the operations on the list of states generated during the simulation.
-        """
-        state_scores_dict = dict()
-        final_states = list()
-        state_seq_type = dict()
-        incorrect_seq_tracker = list()
-        correct_seq_tracker = list()
-        not_started_seq_tracker = list()
-
-        for start_state in all_states:
-            cell_div_start_flag = False
-            all_cyclin_states, update_sequence = self.__generate_state_table(
-                graph_matrix=graph, start_state=start_state
-            )
-            if self.__check_activation_index(all_cyclin_states) != -1:
-                cell_div_start_flag = True
-
-            if self.__exp_cycle_detection and self.__detect_end_cycles(all_cyclin_states):
-                final_states.append("C" * len(self.__all_cyclins))
-                state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
-                    all_cyclin_states[-2]
-                )
-                logger.debug(
-                    f"Cycle found for start state: {str(dict(zip(self.__all_cyclins, start_state)))}", detail=True
-                )
-            elif not self.__exp_cycle_detection and self.__lazy_detect_cycles(all_cyclin_states):
-                final_states.append("C" * len(self.__all_cyclins))
-                state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
-                    all_cyclin_states[-2]
-                )
-            else:
-                curr_final_state = all_cyclin_states[-1]
-                final_states.append("".join(map(str, curr_final_state)))
-                state_score = self.__calculate_state_scores(curr_final_state)
-
-            state_scores_dict["".join(map(str, start_state))] = state_score
-            if self.__view_state_table:
-                self.print_state_table(all_cyclin_states, update_sequence)
-
-            curr_start_state_str = self.state_as_str(start_state)
-            if self.__check_sequence and start_state in self.__g1_start_states:
-                if not cell_div_start_flag:
-                    not_started_seq_tracker.append(curr_start_state_str)
-                    state_seq_type["".join(map(str, start_state))] = "did_not_start"
-                    if start_state in self.__g1_start_states:
-                        state_score += self.__sequence_penalty
-                        state_scores_dict["".join(map(str, start_state))] = state_score
-                    continue
-                if self.verify_sequence(all_cyclin_states):
-                    correct_seq_tracker.append(curr_start_state_str)
-                    state_seq_type["".join(map(str, start_state))] = "correct"
-                else:
-                    logger.debug("Correct Cyclin order not followed for this start_state", detail=True)
-                    incorrect_seq_tracker.append(curr_start_state_str)
-                    state_seq_type["".join(map(str, start_state))] = "incorrect"
-                    if start_state in self.__g1_start_states:
-                        state_score += self.__sequence_penalty
-                        state_scores_dict["".join(map(str, start_state))] = state_score
-
     def __iterate_all_start_states(self, graph_matrix: list[list], graph_mod_id: str) -> tuple[dict, list]:
         """
         This method iterates through all possible start states of the cell cycle model and
