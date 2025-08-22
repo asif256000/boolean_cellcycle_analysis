@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import get_origin
+from typing import get_origin, get_args
+from types import UnionType
 
 
 # Template of input data that is to be used for all the models
@@ -32,15 +33,19 @@ class InputTemplate:
     def __post_init__(self):
         for name, field_type in self.__annotations__.items():
             value = self.__dict__[name]
+            origin = get_origin(field_type)
 
-            # Handle parameterized generics (e.g., List[str], Dict[str, int])
-            if get_origin(field_type):  # Check if it's a parameterized generic type
-                origin = get_origin(field_type)  # Base type (e.g., List)
-                if not isinstance(value, origin):  # Check against the base type (e.g., List)
+            if origin is UnionType:
+                allowed_types = get_args(field_type)
+                if not isinstance(value, allowed_types):
+                    current_type = type(value)
+                    raise TypeError(f"The field `{name}` was assigned by `{current_type}` instead of `{field_type}`")
+            elif origin:  # For other generics like list, dict
+                if not isinstance(value, origin):
                     current_type = type(value)
                     raise TypeError(f"The field `{name}` was assigned by `{current_type}` instead of `{field_type}`")
             else:
-                # Standard isinstance check for non-parameterized types
+                # For non-generic types
                 if not isinstance(value, field_type):
                     current_type = type(value)
                     raise TypeError(f"The field `{name}` was assigned by `{current_type}` instead of `{field_type}`")
