@@ -1,24 +1,25 @@
 from dataclasses import dataclass, field
-from typing import get_origin
+from typing import get_origin, get_args
+from types import UnionType
 
 
 # Template of input data that is to be used for all the models
 # The placeholder values are to be set to None in the template
 @dataclass
 class InputTemplate:
-    organism: str = None  # The organism for which the model is being tested
+    organism: str | None = None  # The organism for which the model is being tested
     cyclins: list[str] = field(default_factory=list)  # List of cyclins that are present in the model
     new_cyclins: list[str] = field(
         default_factory=list
     )  # List of new cyclins that are to be added to the model and discover new edges
-    cell_cycle_activation_cyclin: str = None  # The cyclin that activates the cell cycle
+    cell_cycle_activation_cyclin: str | None = None  # The cyclin that activates the cell cycle
     # The boolean graph of the model, represented as a 2D list with each element representing incoming edge
     # We use this in the simulation, while the original_graph is kept as a backup of the original graph
     modified_graph: list[list[int]] = field(default_factory=list)
-    optimal_graph_score: int = None  # The optimal score of the graph
-    g1_only_optimal_graph_score: int = None  # The optimal score of the graph when only G1 states are considered
-    rule_based_self_activation: bool = None
-    rule_based_self_deactivation: bool = None
+    optimal_graph_score: int | None = None  # The optimal score of the graph
+    g1_only_optimal_graph_score: int | None = None  # The optimal score of the graph when only G1 states are considered
+    rule_based_self_activation: bool | None = None
+    rule_based_self_deactivation: bool | None = None
     # The expected final state of the model, depending on which the final score is calculated.
     # '-' is used instead of 0 and 1 if the state is not important and any value is acceptable.
     expected_final_state: list = field(default_factory=list)
@@ -32,15 +33,19 @@ class InputTemplate:
     def __post_init__(self):
         for name, field_type in self.__annotations__.items():
             value = self.__dict__[name]
+            origin = get_origin(field_type)
 
-            # Handle parameterized generics (e.g., List[str], Dict[str, int])
-            if get_origin(field_type):  # Check if it's a parameterized generic type
-                origin = get_origin(field_type)  # Base type (e.g., List)
-                if not isinstance(value, origin):  # Check against the base type (e.g., List)
+            if origin is UnionType:
+                allowed_types = get_args(field_type)
+                if not isinstance(value, allowed_types):
+                    current_type = type(value)
+                    raise TypeError(f"The field `{name}` was assigned by `{current_type}` instead of `{field_type}`")
+            elif origin:  # For other generics like list, dict
+                if not isinstance(value, origin):
                     current_type = type(value)
                     raise TypeError(f"The field `{name}` was assigned by `{current_type}` instead of `{field_type}`")
             else:
-                # Standard isinstance check for non-parameterized types
+                # For non-generic types
                 if not isinstance(value, field_type):
                     current_type = type(value)
                     raise TypeError(f"The field `{name}` was assigned by `{current_type}` instead of `{field_type}`")
@@ -60,7 +65,7 @@ class InputTemplate:
 # Inputs for Model A (Yeast Model - Model01)
 @dataclass
 class ModelAInputs(InputTemplate):
-    organism: str = field(default="Yeast - Model01")
+    organism: str | None = field(default="Yeast - Model01")
     cyclins: list[str] = field(
         default_factory=lambda: [
             "Cln3",
@@ -77,11 +82,11 @@ class ModelAInputs(InputTemplate):
         ]
     )
     new_cyclins: list[str] = field(default_factory=lambda: ["Cdc2014"])
-    cell_cycle_activation_cyclin: str = field(default="Clb5,6")
-    optimal_graph_score: int = field(default=751)
-    g1_only_optimal_graph_score: int = field(default=2111)
-    rule_based_self_activation: bool = field(default=False)
-    rule_based_self_deactivation: bool = field(default=True)
+    cell_cycle_activation_cyclin: str | None = field(default="Clb5,6")
+    optimal_graph_score: int | None = field(default=751)
+    g1_only_optimal_graph_score: int | None = field(default=2111)
+    rule_based_self_activation: bool | None = field(default=False)
+    rule_based_self_deactivation: bool | None = field(default=True)
     modified_graph: list[list[int]] = field(
         default_factory=lambda: [
             [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # "Cln3"
@@ -151,16 +156,16 @@ class ModelAInputs(InputTemplate):
 # Inputs for Model B (Mammal Model derived from modifying Faure boolean Model - Model02)
 @dataclass
 class ModelBInputs(InputTemplate):
-    organism: str = field(default="Mammal - Model02")
+    organism: str | None = field(default="Mammal - Model02")
     cyclins: list[str] = field(
         default_factory=lambda: ["CycD", "CycE", "CycA", "Cdc20", "CycB", "E2F", "RB", "P27", "Cdh1", "Cdc14"]
     )
     new_cyclins: list[str] = field(default_factory=lambda: ["Cdc20"])
-    cell_cycle_activation_cyclin: str = "CycE"
-    optimal_graph_score: int = field(default=4171)
-    g1_only_optimal_graph_score: int = field(default=2111)
-    rule_based_self_activation: bool = field(default=True)
-    rule_based_self_deactivation: bool = field(default=True)
+    cell_cycle_activation_cyclin: str | None = "CycE"
+    optimal_graph_score: int | None = field(default=4171)
+    g1_only_optimal_graph_score: int | None = field(default=2111)
+    rule_based_self_activation: bool | None = field(default=True)
+    rule_based_self_deactivation: bool | None = field(default=True)
     g1_state_zero_cyclins: list[str] = field(default_factory=lambda: ["CycE", "CycA", "CycB", "Cdc20"])
     g1_state_one_cyclins: list[str] = field(default_factory=lambda: ["CycD", "RB", "P27", "Cdh1"])
 
@@ -219,7 +224,7 @@ class ModelBInputs(InputTemplate):
 # Inputs for Model C (Mammal Model derived from modifying Goldbeter probabilistic Model - Model03)
 @dataclass
 class ModelCInputs(InputTemplate):
-    organism: str = field(default="Mammal - Model03")
+    organism: str | None = field(default="Mammal - Model03")
     cyclins: list[str] = field(
         default_factory=lambda: [
             "CycD",
@@ -239,11 +244,11 @@ class ModelCInputs(InputTemplate):
         ]
     )
     new_cyclins: list[str] = field(default_factory=lambda: ["XX"])
-    cell_cycle_activation_cyclin: str = field(default="CycE")
-    optimal_graph_score: int = field(default=4171)
-    g1_only_optimal_graph_score: int = field(default=2111)
-    rule_based_self_activation: bool = field(default=True)
-    rule_based_self_deactivation: bool = field(default=True)
+    cell_cycle_activation_cyclin: str | None = field(default="CycE")
+    optimal_graph_score: int | None = field(default=4171)
+    g1_only_optimal_graph_score: int | None = field(default=2111)
+    rule_based_self_activation: bool | None = field(default=True)
+    rule_based_self_deactivation: bool | None = field(default=True)
     g1_state_zero_cyclins: list[str] = field(default_factory=lambda: ["CycE", "CycA", "CycB", "E2F", "Cdc20"])
     g1_state_one_cyclins: list[str] = field(default_factory=lambda: ["CycD", "RB", "Wee1"])
 

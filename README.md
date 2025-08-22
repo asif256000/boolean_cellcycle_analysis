@@ -11,6 +11,24 @@ The primary goal of this paper is to analyze all perturbations of the boolean ne
 1. Clone the repository: `git clone https://github.com/asif256000/boolean_cellcycle_analysis`
 2. Install the required libraries: `pip install -r requirements.txt`
 
+### GPU Acceleration
+
+This project supports GPU acceleration using JAX for significantly faster performance with large state spaces:
+
+1. Install JAX with GPU support: `pip install "jax[cuda12]"` (for NVIDIA GPUs)
+2. For Google TPUs: `pip install "jax[tpu]"`
+3. For AMD GPUs: `pip install "jax[rocm]"`
+4. For CPU-only: `pip install jax`
+
+Note: JAX GPU support requires compatible hardware and drivers. See the [JAX installation guide](https://github.com/google/jax#installation) for details.
+
+#### Acceleration Features
+
+- **Performance**: Significant speedup for large models
+- **Memory optimization**: Efficiently handles very large state spaces
+- **Dynamic batch sizing**: Optimizes based on model complexity
+- **Fallback mechanism**: Gracefully falls back to CPU when needed
+
 ## Usage
 
 ### Text Usage

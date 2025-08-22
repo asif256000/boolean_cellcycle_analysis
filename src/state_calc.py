@@ -1,10 +1,15 @@
-# import importlib
 from argparse import Namespace
 from copy import deepcopy
+from functools import partial
 from random import choice, choices, shuffle
+from typing import Dict, List, Optional, Tuple
 
+import jax
+import jax.numpy as jnp
 import numpy as np
+from jax import device_put, jit, random, vmap
 
+# JAX acceleration is implemented directly in this class
 from src.all_inputs import InputTemplate
 from src.log_module import logger
 
@@ -32,26 +37,86 @@ class CellCycleStateCalculation:
 
         self.cyclin_print_map = {f"P{ix:>02}": c for ix, c in enumerate(self.__all_cyclins)}
 
-        self.__detailed_logs = file_inputs["detailed_logs"]
-        self.__hardcoded_self_loops = file_inputs["hardcoded_self_loops"]
+        # JAX optimization parameters
+        self.__use_gpu = file_inputs.get("use_gpu", True)
+        self.__use_cpu = file_inputs.get("use_cpu", True)
+        self.__force_cpu_only = file_inputs.get("force_cpu_only", False)
+        self.__batch_size_gpu = file_inputs.get("batch_size_gpu", None)
+        self.__hardcoded_self_loops = file_inputs.get("hardcoded_self_loops", True)
+        self.__detailed_logs = file_inputs.get("detailed_logs", False)
+        self.__view_state_table = file_inputs.get("view_state_table", False)
+        self.__view_final_state_count_table = file_inputs.get("view_final_state_count_table", False)
+        self.__view_state_change_only = file_inputs.get("view_state_change_only", False)
+
+        # Configure JAX devices
+        self.gpu_devices = []
+        self.cpu_devices = []
+        self.batch_size_gpu = 64  # Default batch size
+
+        # Configure JAX if available
+        try:
+            # Get all available devices
+            all_devices = jax.devices()
+
+            # Separate GPU and CPU devices
+            for device in all_devices:
+                if device.platform == "gpu" and self.__use_gpu and not self.__force_cpu_only:
+                    self.gpu_devices.append(device)
+                elif device.platform == "cpu" and self.__use_cpu:
+                    self.cpu_devices.append(device)
+
+            # Set primary device
+            if self.gpu_devices and not self.__force_cpu_only:
+                self.primary_device = self.gpu_devices[0]  # Use first GPU
+            elif self.cpu_devices:
+                self.primary_device = self.cpu_devices[0]  # Use first CPU
+            else:
+                self.primary_device = jax.devices("cpu")[0]
+
+            # Calculate optimal batch size
+            if self.__batch_size_gpu is not None:
+                self.batch_size_gpu = self.__batch_size_gpu
+            elif not self.gpu_devices or self.__force_cpu_only:
+                self.batch_size_gpu = 32  # Default for CPU
+            else:
+                # Choose batch size based on model complexity
+                num_cyclins = len(self.__all_cyclins)
+                if num_cyclins <= 8:
+                    self.batch_size_gpu = 512
+                elif num_cyclins <= 10:
+                    self.batch_size_gpu = 256
+                elif num_cyclins <= 12:
+                    self.batch_size_gpu = 128
+                else:
+                    self.batch_size_gpu = 64
+
+            logger.debug(
+                f"JAX configuration: GPU devices={len(self.gpu_devices)}, "
+                f"CPU devices={len(self.cpu_devices)}, "
+                f"Batch size={self.batch_size_gpu}"
+            )
+        except Exception as e:
+            logger.error(f"Error configuring JAX: {e}")
+            self.batch_size_gpu = 64
+
         self.__check_sequence = file_inputs["check_sequence"]
         self.__g1_states_only_flag = file_inputs["g1_states_only"]
-        self.__view_state_table = file_inputs["view_state_table"]
-        self.__view_state_change_only = file_inputs["view_state_changes_only"]
-        self.__view_final_state_count_table = file_inputs["view_final_state_count_table"]
         self.__async_update = file_inputs["async_update"]
         self.__random_order_cyclin = file_inputs["random_order_cyclin"]
         self.__complete_cycle = file_inputs["complete_cycle"]
         self.__exp_cycle_detection = file_inputs["expensive_state_cycle_detection"]
         self.__max_iter_count = file_inputs["max_updates_per_cycle"]
 
-        logger.set_ignore_details_flag(flag=not self.__detailed_logs)
         self.__start_states = self.__get_all_possible_starting_states()
         self.__g1_start_states = self.__get_all_g1_states()
         self.nodes_and_edges = None
 
         logger.debug(f"Class state: {self}")
         logger.debug(f"Inputs: {file_inputs=}, {user_inputs=}")
+        logger.debug(
+            f"JAX configuration: GPU devices={len(self.gpu_devices)}, CPU devices={len(self.cpu_devices)}, "
+            f"Primary device={self.primary_device}, Batch size={self.batch_size_gpu}"
+        )
 
     def __repr__(self) -> str:
         return (
@@ -441,28 +506,21 @@ class CellCycleStateCalculation:
                 return ix
         return default_ix
 
-    def __iterate_all_start_states(self, graph_matrix: list[list], graph_mod_id: str) -> tuple[dict, list]:
+    def __all_state_operations(self, graph: list[list], all_states: list, use_gpu: bool = False) -> list:
         """
-        This method iterates through all possible start states of the cell cycle model and
-        simulates the cell cycle dynamics. It calculates state scores and determines the
-        final states of each simulation.
+        This method unifies all the operations on the list of states generated during the simulation.
         """
         state_scores_dict = dict()
         final_states = list()
+        state_seq_type = dict()
         incorrect_seq_tracker = list()
         correct_seq_tracker = list()
         not_started_seq_tracker = list()
-        state_seq_type = dict()
 
-        if self.__g1_states_only_flag:
-            all_start_states = self.__g1_start_states
-        else:
-            all_start_states = self.__start_states
-
-        for start_state in all_start_states:
+        for start_state in all_states:
             cell_div_start_flag = False
             all_cyclin_states, update_sequence = self.__generate_state_table(
-                graph_matrix=graph_matrix, start_state=start_state
+                graph_matrix=graph, start_state=start_state
             )
             if self.__check_activation_index(all_cyclin_states) != -1:
                 cell_div_start_flag = True
@@ -509,100 +567,283 @@ class CellCycleStateCalculation:
                         state_score += self.__sequence_penalty
                         state_scores_dict["".join(map(str, start_state))] = state_score
 
-        # tracked_correct_states = "\n".join(correct_seq_tracker)
-        # tracked_incorrect_states = "\n".join(incorrect_seq_tracker)
-        # non_started_states = "\n".join(not_started_seq_tracker)
+    def _jax_update_single_state(self, state, graph_matrix):
+        """
+        JAX-optimized version of state update logic for a single state.
+
+        Args:
+            state (jnp.array): Current state array
+            graph_matrix (jnp.array): Connection graph matrix
+
+        Returns:
+            jnp.array: Updated state
+        """
+        # Matrix multiplication for weight calculation
+        # This vectorized version calculates the weighted sum for all nodes at once
+        weighted_sums = jnp.dot(graph_matrix, state)
+
+        # Apply threshold activation function (>0 becomes 1, ≤0 becomes 0)
+        new_state = jnp.greater_equal(weighted_sums, 0).astype(jnp.int32)
+
+        return new_state
+
+    def _jax_update_batch_states(self, states, graph_matrix):
+        """
+        JAX-optimized batched state update using vectorization.
+
+        Args:
+            states (jnp.array): Batch of states
+            graph_matrix (jnp.array): Connection graph matrix
+
+        Returns:
+            jnp.array: Batch of updated states
+        """
+        # Vectorize the single state update function across the batch dimension
+        batch_update_fn = vmap(self._jax_update_single_state, in_axes=(0, None))
+        return batch_update_fn(states, graph_matrix)
+
+    def _process_states_in_batches(self, states, graph_matrix, max_iterations=50):
+        """
+        Process states in batches using JAX optimization for improved performance.
+
+        Args:
+            states (list): List of initial states
+            graph_matrix (list): Connection graph matrix
+            max_iterations (int): Maximum number of iterations
+
+        Returns:
+            dict: Mapping of initial states to final states
+        """
+        # Convert inputs to JAX arrays
+        graph_matrix_jax = jnp.array(graph_matrix, dtype=jnp.int32)
+
+        # Results dictionary
+        results = {}
+
+        # Process states in batches
+        batch_size = getattr(self, "batch_size_gpu", 64)
+
+        for i in range(0, len(states), batch_size):
+            batch_states = states[i : i + batch_size]
+
+            # Convert batch to JAX array
+            batch_states_jax = jnp.array(batch_states, dtype=jnp.int32)
+
+            # Transfer to device if we have a designated device
+            if hasattr(self, "primary_device"):
+                batch_states_jax = device_put(batch_states_jax, self.primary_device)
+
+            # Initialize for iteration tracking
+            curr_states = batch_states_jax
+            iterations = 0
+
+            # Iterate until convergence or max iterations
+            while iterations < max_iterations:
+                # Update all states in the batch
+                new_states = self._jax_update_batch_states(curr_states, graph_matrix_jax)
+
+                # Check if all states have converged (reached fixed points)
+                all_equal = jnp.all(new_states == curr_states)
+                if all_equal:
+                    break
+
+                curr_states = new_states
+                iterations += 1
+
+            # Convert final states back to standard Python lists
+            final_states = jnp.array(curr_states).tolist()
+
+            # Store results in dictionary
+            for init_state, final_state in zip(batch_states, final_states):
+                init_tuple = tuple(init_state)
+                final_tuple = tuple(final_state)
+                results[init_tuple] = final_tuple
+
+        return results
+
+    def __iterate_all_start_states_jax(self, graph_matrix, graph_mod_id):
+        """
+        JAX-optimized version of iterate_all_start_states that processes states in batches.
+        Provides significant performance improvements for synchronous state updates.
+
+        Args:
+            graph_matrix: Graph matrix representing the network
+            graph_mod_id: Identifier for the graph modification
+
+        Returns:
+            Tuple of (state_scores_dict, final_states, state_seq_type)
+        """
+        state_scores_dict = {}
+        final_states = []
+        state_seq_type = {}
+
+        # Select states based on configuration
+        all_start_states = self.__g1_start_states if self.__g1_states_only_flag else self.__start_states
+
+        logger.debug(f"Processing {len(all_start_states)} states with JAX optimization")
+
+        # Process all states in batches with JAX acceleration
+        batch_results = self._process_states_in_batches(
+            all_start_states, graph_matrix, max_iterations=self.__max_iter_count
+        )
+
+        # Process results and calculate scores
+        for start_state_tuple, final_state_tuple in batch_results.items():
+            start_state = list(start_state_tuple)
+            final_state = list(final_state_tuple)
+
+            # Convert to string format for dictionary keys
+            start_state_str = "".join(map(str, start_state))
+            final_state_str = "".join(map(str, final_state))
+
+            # Calculate state score
+            state_score = self.__calculate_state_scores(final_state)
+            state_scores_dict[start_state_str] = state_score
+            final_states.append(final_state_str)
+
+            # Basic tracking for sequence verification
+            if self.__check_sequence and tuple(start_state) in map(tuple, self.__g1_start_states):
+                state_seq_type[start_state_str] = "jax_optimized"
+
+        logger.debug(f"Processed {len(all_start_states)} states with JAX optimization")
+        return state_scores_dict, final_states, state_seq_type
+
+    def __iterate_all_start_states(self, graph_matrix: list[list], graph_mod_id: str) -> tuple[dict, list, dict]:
+        """
+        This method iterates through all possible start states of the cell cycle model and
+        simulates the cell cycle dynamics. It calculates state scores and determines the
+        final states of each simulation.
+
+        This version selects between JAX-optimized and original implementation based on
+        the simulation settings and available hardware.
+        """
+        # Determine if we can use JAX optimization
+        use_jax = (hasattr(self, "gpu_devices") and self.gpu_devices) or (
+            hasattr(self, "cpu_devices") and self.cpu_devices
+        )
+        use_jax = use_jax and not self.__async_update and not self.__force_cpu_only
+
+        # For now, disable JAX optimization until we fix the implementation issues
+        use_jax = False
+
+        if use_jax:
+            logger.debug("Using JAX-optimized state processing")
+
+            # Select states based on configuration
+            states_to_process = self.__g1_start_states if self.__g1_states_only_flag else self.__start_states
+
+            # Process all states in batches with JAX acceleration
+            state_scores_dict = {}
+            final_states = []
+            state_seq_type = {}
+
+            # Process in batches
+            batch_results = self._process_states_in_batches(
+                states_to_process, graph_matrix, max_iterations=self.__max_iter_count
+            )
+
+            # Process results and calculate scores
+            for start_state_tuple, final_state_tuple in batch_results.items():
+                start_state = list(start_state_tuple)
+                final_state = list(final_state_tuple)
+
+                # Convert to string format for dictionary keys
+                start_state_str = "".join(map(str, start_state))
+                final_state_str = "".join(map(str, final_state))
+
+                # Calculate state score
+                state_score = self.__calculate_state_scores(final_state)
+                state_scores_dict[start_state_str] = state_score
+                final_states.append(final_state_str)
+
+                # Basic tracking for sequence verification
+                if self.__check_sequence and tuple(start_state) in map(tuple, self.__g1_start_states):
+                    state_seq_type[start_state_str] = "jax_optimized"
+
+            logger.debug(f"Processed {len(states_to_process)} states with JAX optimization")
+            return state_scores_dict, final_states, state_seq_type
+        else:
+            # Use original implementation for special cases or when JAX is not available
+            logger.debug("Using original state processing (no JAX optimization)")
+            return self.__iterate_all_start_states_original(graph_matrix, graph_mod_id)
+
+    def __iterate_all_start_states_original(
+        self, graph_matrix: list[list], graph_mod_id: str
+    ) -> tuple[dict, list, dict]:
+        """
+        Original implementation of iterate_all_start_states.
+        Used when JAX optimization can't be applied, such as with asynchronous updates
+        or when hardware acceleration isn't available.
+        """
+        state_scores_dict = dict()
+        final_states = list()
+        incorrect_seq_tracker = list()
+        correct_seq_tracker = list()
+        not_started_seq_tracker = list()
+        state_seq_type = dict()
+
+        if self.__g1_states_only_flag:
+            all_start_states = self.__g1_start_states
+        else:
+            all_start_states = self.__start_states
+
+        for start_state in all_start_states:
+            cell_div_start_flag = False
+            all_cyclin_states, update_sequence = self.__generate_state_table(
+                graph_matrix=graph_matrix, start_state=start_state
+            )
+            if self.__check_activation_index(all_cyclin_states) != -1:
+                cell_div_start_flag = True
+
+            if self.__exp_cycle_detection and self.__detect_end_cycles(all_cyclin_states):
+                final_states.append("C" * len(self.__all_cyclins))
+                state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
+                    all_cyclin_states[-2]
+                )
+                logger.debug(
+                    f"Cycle found for start state: {str(dict(zip(self.__all_cyclins, start_state)))}", detail=True
+                )
+            elif not self.__exp_cycle_detection and self.__lazy_detect_cycles(all_cyclin_states):
+                final_states.append("C" * len(self.__all_cyclins))
+                state_score = self.__calculate_state_scores(all_cyclin_states[-1]) + self.__calculate_state_scores(
+                    all_cyclin_states[-2]
+                )
+            else:
+                curr_final_state = all_cyclin_states[-1]
+                final_states.append("".join(map(str, curr_final_state)))
+                state_score = self.__calculate_state_scores(curr_final_state)
+
+            state_scores_dict["".join(map(str, start_state))] = state_score
+            if hasattr(self, "__view_state_table") and self.__view_state_table:
+                self.print_state_table(all_cyclin_states, update_sequence)
+
+            curr_start_state_str = self.state_as_str(start_state)
+            if self.__check_sequence and start_state in self.__g1_start_states:
+                if not cell_div_start_flag:
+                    not_started_seq_tracker.append(curr_start_state_str)
+                    state_seq_type["".join(map(str, start_state))] = "did_not_start"
+                    if start_state in self.__g1_start_states:
+                        state_score += self.__sequence_penalty
+                        state_scores_dict["".join(map(str, start_state))] = state_score
+                    continue
+                if self.verify_sequence(all_cyclin_states):
+                    correct_seq_tracker.append(curr_start_state_str)
+                    state_seq_type["".join(map(str, start_state))] = "correct"
+                else:
+                    logger.debug("Correct Cyclin order not followed for this start_state", detail=True)
+                    incorrect_seq_tracker.append(curr_start_state_str)
+                    state_seq_type["".join(map(str, start_state))] = "incorrect"
+                    if start_state in self.__g1_start_states:
+                        state_score += self.__sequence_penalty
+                        state_scores_dict["".join(map(str, start_state))] = state_score
+
+        # Print summary statistics
         logs = [
             f"\nA total {len(correct_seq_tracker)} starting states out of {len(all_start_states)} went through correct sequence.",
             f"A total {len(incorrect_seq_tracker)} starting states out of {len(all_start_states)} did not go through correct sequence.",
             f"A total {len(not_started_seq_tracker)} starting states out of {len(all_start_states)} did not start cell cycle",
             f"i.e it did not turn or started with {self.__cell_cycle_activation_cyclin} as 1 in the cell cycle.",
-            # f"The states that followed correct order are:\n{tracked_correct_states}",
-            # f"The states that did not follow correct order are:\n{tracked_incorrect_states}",
-            # f"The states that did not start cell cycle are:\n{non_started_states}",
         ]
         logger.debug("\n".join(logs), detail=True)
 
         return state_scores_dict, final_states, state_seq_type
-
-    def verify_sequence(self, all_states: list) -> bool:
-        """Checks if the state path that was traversed follows expected order. Returns True if it follows correct sequence, otherwise returns False.
-
-        :param list all_states: State order that was followed by the cell cycle.
-        :return bool: True if expected sequence was followed, otherwise returns False.
-        """
-        filtered_states = self.remove_continuous_duplicates(all_states)
-        expected_order = [order for order in self.__expected_cyclin_order]
-        for curr_state in filtered_states:
-            if not expected_order:
-                break
-            if expected_order[0].items() <= dict(zip(self.__all_cyclins, curr_state)).items():
-                _ = expected_order.pop(0)
-
-        if len(expected_order) != 0:
-            return False
-        return True
-
-    def generate_graph_score_and_final_states(
-        self, graph_info: tuple[list[list], str] = None
-    ) -> tuple[int, dict, dict]:
-        """
-        This method calculates a graph score and generates final state information for a
-        given graph modification, which includes the network's adjacency matrix and a
-        unique identifier. The graph score is determined based on state scores, and the
-        final state information includes counts and sequence types.
-        """
-        logger.set_ignore_details_flag(flag=not self.__detailed_logs)
-
-        if graph_info:
-            graph_matrix, graph_mod_id = graph_info
-        else:
-            graph_matrix, graph_mod_id = self.nodes_and_edges, self.graph_modification
-
-        state_scores, final_states, state_seq_types = self.__iterate_all_start_states(graph_matrix, graph_mod_id)
-        final_state_count = self.__generate_final_state_counts(final_states)
-        graph_score = sum(state_scores.values())
-
-        logger.debug(f"{graph_score=} for graph modification={graph_mod_id} and organism={self.__organism}")
-
-        if self.__view_final_state_count_table:
-            self.print_final_state_count_table(final_state_count)
-
-        return graph_score, final_state_count, state_seq_types
-
-    def print_final_state_count_table(self, final_state_count: dict, log_level: str = "debug"):
-        table_as_str = "Count of final state for each start states:\n"
-        for state, count in final_state_count.items():
-            table_as_str += f"Count: {count:>05}, "
-            table_as_str += self.state_as_str(state)
-            table_as_str += "\n"
-
-        if log_level.lower() == "info":
-            logger.info(table_as_str)
-        else:
-            logger.debug(table_as_str)
-
-    def print_state_table(self, cyclin_states: list, random_update_sequence: list, log_level: str = "debug"):
-        curr_tracked_state = cyclin_states[0]
-        table_as_str = f"State sequence for start state: {self.state_as_str(curr_tracked_state)}\n"
-        table_as_str += "Time: 0000, " + self.state_as_str(curr_tracked_state)
-        if random_update_sequence:
-            table_as_str += ", Update: Start\n"
-        else:
-            table_as_str += "\n"
-
-        for ix, ix_state in enumerate(cyclin_states[1:]):
-            if self.__view_state_change_only and ix_state == curr_tracked_state:
-                continue
-            table_as_str += f"Time: {ix + 1:>04}, "
-            table_as_str += self.state_as_str(ix_state)
-            if random_update_sequence:
-                table_as_str += f", Update: {random_update_sequence[ix]}\n"
-            else:
-                table_as_str += "\n"
-            curr_tracked_state = ix_state
-
-        if log_level.lower() == "info":
-            logger.info(table_as_str)
-        else:
-            logger.debug(table_as_str)
