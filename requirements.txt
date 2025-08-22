@@ -31,8 +31,5 @@ six
 snakeviz
 tornado
 XlsxWriter
-jax
-jaxlib
-jax-metal
-jax[cuda12]
-jax[rocm]
+jax[metal]==0.4.26
+jaxlib==0.4.26
