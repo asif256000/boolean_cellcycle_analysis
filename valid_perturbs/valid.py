@@ -42,11 +42,13 @@ name_map = {
     "Plk1": ["PLK1"],
     "Pkmyt1": ["PKMYT1"],
     "Aurka": ["AURKA"],
+    "XX" : [],
 }
 
 signor_data_map = {}
 for i in signor_data.to_numpy():
     entity_a = str(i[0]).strip()
+    name_map["XX"].append(entity_a) # For XX nodes add every possible entity to check
     entity_b = str(i[1]).strip()
     regulation = str(i[2]).strip()
     pmid = str(i[3]).strip()
@@ -81,6 +83,7 @@ as soon as 1 matching pair is found in name_map values for that key, it is count
 
 
 def check_perturb(c1, c2, effect):
+    # TODO: If c1 or c2 == "XX" then check perturb with all possible keys in name_map
     effect_0_valid = True  # by default we assume the c1,c2 pair is not in DB
     for c1_name in name_map[c1]:
         for c2_name in name_map[c2]:
