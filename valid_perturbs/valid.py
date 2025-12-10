@@ -48,7 +48,10 @@ name_map = {
 signor_data_map = {}
 for i in signor_data.to_numpy():
     entity_a = str(i[0]).strip()
-    name_map["XX"].append(entity_a) # For XX nodes add every possible entity to check
+    if entity_a not in name_map["XX"]:
+        name_map["XX"].append(entity_a) # For XX nodes add every possible entity to check
+    if entity_a not in name_map:
+        name_map[entity_a] = [entity_a] # Add a node to name_map for every entity
     entity_b = str(i[1]).strip()
     regulation = str(i[2]).strip()
     pmid = str(i[3]).strip()
@@ -64,6 +67,11 @@ if double perturb, returns list of length 2
 def parse_perturb(perturb):
     parsed_perturbs = []
 
+    # If there is an XX node add every possibility to the list
+    if "XX" in perturb and "DAXX" not in perturb and "XXY" not in perturb: # Avoid DAXX and XXYTL as they contain XX
+        for xx in name_map["XX"]:
+            parsed_perturbs += parse_perturb(perturb.replace("XX", xx))
+        return parsed_perturbs
     perturbs = perturb.split("|")
     for p in perturbs:
         pair, effect = p.split("->")
@@ -83,7 +91,6 @@ as soon as 1 matching pair is found in name_map values for that key, it is count
 
 
 def check_perturb(c1, c2, effect):
-    # TODO: If c1 or c2 == "XX" then check perturb with all possible keys in name_map
     effect_0_valid = True  # by default we assume the c1,c2 pair is not in DB
     for c1_name in name_map[c1]:
         for c2_name in name_map[c2]:
@@ -137,7 +144,11 @@ if __name__ == "__main__":
 
     perturbs_result = {}  # holds True/False if a line item in the perturb excel sheet is good or not
     cols = ["Perturbation ID"] + (["Graph Score"] if PRINT_SCORE else [])
+    checked_amount = 0 # rows checked so far
     for row in model_perturb_data[cols].to_dict("records"):
+        checked_amount += 1
+        if checked_amount % 100 == 0:
+            print(f"Checked {checked_amount} rows so far")
         perturb = row["Perturbation ID"]
         if PRINT_SCORE:
             score = row["Graph Score"]
@@ -148,29 +159,42 @@ if __name__ == "__main__":
             print("Skipping perturb: " + perturb)
             continue
 
-        row_result = None
+        row_result = False # is this row valid?
+        prev_count = -1 # how many variations of xx have we checked
+        prev_result = False # was the last variation valid?
 
         for c1, c2, effect in parse_perturb(perturb):
-
             perturb_result = None
+            prev_count += 1
             if c1 in name_map and c2 in name_map and c1 != c2:
                 perturb_result = check_perturb(c1, c2, effect)
-            # if the first peturb in this set was not checked, determine result using this perturb, otherwise && with first one
+            # if the first peturb in this set was not checked, determine result using this perturb
             if perturb_result is not None:
 
-                # store result in row_result
-                if row_result is None:
-                    row_result = perturb_result
-                else:
-                    row_result = row_result and perturb_result
+                # check to see if perturb exists in pmid_map (db context)
+                perturb_result = ((c1, c2, effect) in pmid_map) and perturb_result
+                if perturb_result:
+                    db_context.extend(pmid_map[(c1, c2, effect)])
 
+                # break if we found a proper pair
+                if (prev_result and perturb_result) and prev_count % 2 == 1:
+                    row_result = True
+                    break
+                else:
+                    prev_result = perturb_result
+
+            '''
+            Commented this out in case this might become useful later
+            
             if (c1, c2, effect) in pmid_map:
+                print(pmid_map[(c1, c2, effect)], prev_count, c1, c2)
                 db_context.extend(pmid_map[(c1, c2, effect)])
+            '''
 
         if row_result is not None:
             perturbs_result[perturb] = {"valid": row_result, "score": (score if PRINT_SCORE else "")}
-            if len(db_context) > 0:
-                perturbs_result[perturb].update({"db_context": db_context})
+            if len(db_context) > 0 and row_result:
+                perturbs_result[perturb].update({"db_context": db_context[-2:]})
 
     print(
         "%d out of %d perturbs checked are in DB"
@@ -180,4 +204,4 @@ if __name__ == "__main__":
     model_perturb_data["Exists in DB"] = model_perturb_data["Perturbation ID"].apply(map_cols_to_isValid)
     model_perturb_data["DB Context"] = model_perturb_data["Perturbation ID"].apply(map_cols_to_dbContext)
 
-    model_perturb_data.to_excel("added_%s.xlsx" % EXCEL_TO_CHECK)
+    model_perturb_data.to_excel("added_%s" % EXCEL_TO_CHECK)
