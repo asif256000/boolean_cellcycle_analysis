@@ -153,6 +153,7 @@ if __name__ == "__main__":
         if PRINT_SCORE:
             score = row["Graph Score"]
         db_context = []
+        temp_context = []
         # if perturb in results and results[perturb]: continue # if perturb seen before, dont process again
 
         if "->" not in perturb:
@@ -171,15 +172,15 @@ if __name__ == "__main__":
             # if the first peturb in this set was not checked, determine result using this perturb
             if perturb_result is not None:
 
-                # check to see if perturb exists in pmid_map (db context)
+                # check to see if perturb exists in pmid_map
                 perturb_result = ((c1, c2, effect) in pmid_map) and perturb_result
                 if perturb_result:
-                    db_context.extend(pmid_map[(c1, c2, effect)])
+                    temp_context.extend(pmid_map[(c1, c2, effect)])
 
-                # break if we found a proper pair
+                # set row result true if we found a proper pair
                 if (prev_result and perturb_result) and prev_count % 2 == 1:
                     row_result = True
-                    break
+                    db_context.extend(temp_context[-2:]) # add this legitimate pair to db context
                 else:
                     prev_result = perturb_result
 
@@ -194,7 +195,7 @@ if __name__ == "__main__":
         if row_result is not None:
             perturbs_result[perturb] = {"valid": row_result, "score": (score if PRINT_SCORE else "")}
             if len(db_context) > 0 and row_result:
-                perturbs_result[perturb].update({"db_context": db_context[-2:]})
+                perturbs_result[perturb].update({"db_context": db_context})
 
     print(
         "%d out of %d perturbs checked are in DB"
