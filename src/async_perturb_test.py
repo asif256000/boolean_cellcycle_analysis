@@ -1,6 +1,6 @@
 import argparse
 import multiprocessing as mp
-import os
+import os, re
 import time
 from pathlib import Path
 
@@ -339,6 +339,14 @@ def double_perturb_details(
             nodes=cyclins, graph=starting_graph, perturb_self_loops=True
         )
     ]
+
+    # In mp_args filter only perturbations that have XX
+    filtered = []
+    for i in mp_args:
+        if re.search(r".*XX.*\|.*XX.*" ,i[-3]):
+            filtered.append(i)
+    mp_args = filtered
+
     with mp.Pool(processes=NPROC) as mp_pool:
         results = mp_pool.map(func=perturbation_mp_wrapper, iterable=mp_args)
     for graph_mod, avg_score, unique_final_states, max_state_avg, max_state, avg_seq in results:
